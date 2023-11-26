@@ -20,7 +20,7 @@ contract EmissionSchedule is PrismaOwnable, SystemStart {
 
     // number representing 100% in `weeklyPct`
     uint256 constant MAX_PCT = 10000;
-    uint256 public constant MAX_LOCK_WEEKS = 52;
+    uint256 public constant MAX_LOCK_WEEKS = 52 * 4;
 
     IIncentiveVoting public immutable voter;
     IPrismaVault public immutable vault;
@@ -66,7 +66,9 @@ contract EmissionSchedule is PrismaOwnable, SystemStart {
         @param _schedule Dynamic array of (week, weeklyPct) ordered by week descending.
                          Each `week` indicates the number of weeks after the current week.
      */
-    function setWeeklyPctSchedule(uint64[2][] memory _schedule) external onlyOwner returns (bool) {
+    function setWeeklyPctSchedule(
+        uint64[2][] memory _schedule
+    ) external onlyOwner returns (bool) {
         _setWeeklyPctSchedule(_schedule);
         return true;
     }
@@ -74,7 +76,10 @@ contract EmissionSchedule is PrismaOwnable, SystemStart {
     /**
         @notice Set the number of lock weeks and rate at which lock weeks decay
      */
-    function setLockParameters(uint64 _lockWeeks, uint64 _lockDecayWeeks) external onlyOwner returns (bool) {
+    function setLockParameters(
+        uint64 _lockWeeks,
+        uint64 _lockDecayWeeks
+    ) external onlyOwner returns (bool) {
         require(_lockWeeks <= MAX_LOCK_WEEKS, "Cannot exceed MAX_LOCK_WEEKS");
         require(_lockDecayWeeks > 0, "Decay weeks cannot be 0");
 
@@ -125,18 +130,26 @@ contract EmissionSchedule is PrismaOwnable, SystemStart {
         return (amount, lock);
     }
 
-    function _setWeeklyPctSchedule(uint64[2][] memory _scheduledWeeklyPct) internal {
+    function _setWeeklyPctSchedule(
+        uint64[2][] memory _scheduledWeeklyPct
+    ) internal {
         uint256 length = _scheduledWeeklyPct.length;
         if (length > 0) {
             uint256 week = _scheduledWeeklyPct[0][0];
             uint256 currentWeek = getWeek();
             for (uint256 i = 0; i < length; i++) {
                 if (i > 0) {
-                    require(_scheduledWeeklyPct[i][0] < week, "Must sort by week descending");
+                    require(
+                        _scheduledWeeklyPct[i][0] < week,
+                        "Must sort by week descending"
+                    );
                     week = _scheduledWeeklyPct[i][0];
                 }
                 _scheduledWeeklyPct[i][0] = uint64(week + currentWeek);
-                require(_scheduledWeeklyPct[i][1] <= MAX_PCT, "Cannot exceed MAX_PCT");
+                require(
+                    _scheduledWeeklyPct[i][1] <= MAX_PCT,
+                    "Cannot exceed MAX_PCT"
+                );
             }
             require(week > 0, "Cannot schedule past weeks");
         }

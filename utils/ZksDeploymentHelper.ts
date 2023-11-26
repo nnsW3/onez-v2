@@ -5,7 +5,7 @@ import { IParams } from "./interfaces";
 import { Provider, Wallet } from "zksync-web3";
 import { ZkSyncArtifact } from "@matterlabs/hardhat-zksync-deploy/dist/types";
 import * as ethers from "ethers";
-import BaseDeploymentHelper from "./BaseDeploymentHelper";
+import BaseDeploymentHelper from "./base/BaseDeploymentHelper";
 
 export default class ZksDeploymentHelper extends BaseDeploymentHelper {
   deployer: Deployer;
@@ -56,21 +56,18 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
   getEthersProvider = () => new Provider(this.config.RPC_URL);
 
   async deployContract<T extends Contract>(
-    factoryName: string,
-    prefix = "",
+    name: string,
     params: any[] = []
   ): Promise<T> {
-    const name = `${prefix}${factoryName}`;
-
     if (this.state[name] && this.state[name].address) {
       console.log(
         `- Using previously deployed ${name} contract at address ${this.state[name].address}`
       );
-      return this.getContract<T>(this.state[name].address, factoryName);
+      return this.getContract<T>(this.state[name].address, name);
     }
 
     console.log(`- Deploying ${name}`);
-    const factory = await this.getFactory(factoryName);
+    const factory = await this.getFactory(name);
     const contract = (await this.deployer.deploy(factory, params, {
       gasPrice: this.config.GAS_PRICE,
     })) as T;
@@ -86,7 +83,7 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
 
     console.log(`- Deployed ${name} at ${contract.address}`);
     this.state[name] = {
-      abi: factoryName || name,
+      abi: name,
       address: contract.address,
       txHash: contract.deployTransaction.hash,
     };

@@ -37,30 +37,111 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
 
   private async deployCore(): Promise<any> {
     console.log(`------ Deploying core contracts ------`);
-
     const gasCompenstaion = 0;
 
     // first check if there is a lending pool
     // const lendingPool = await this.deployMockLendingPool(token);
 
     const prismaCore = await this.deployContract("PrismaCore");
-    const factory = await this.deployContract("Factory", undefined, [
-      prismaCore.address,
-    ]);
+    const factory = await this.deployContract("Factory", [prismaCore.address]);
     const borrowerOperations = await this.deployContract(
       "BorrowerOperations",
-      undefined,
+
       [prismaCore.address, gasCompenstaion]
     );
     const debtTokenOnezProxy = await this.deployContract("DebtTokenOnezProxy");
     const onez = await this.deployContract("ONEZ");
     const gasPool = await this.deployContract("GasPool");
-    const liquidationManager = await this.deployContract(
-      "LiquidationManager",
-      undefined,
-      [gasCompenstaion]
+    const liquidationManager = await this.deployContract("LiquidationManager", [
+      gasCompenstaion,
+    ]);
+    const sortedTroves = await this.deployContract("SortedTroves");
+    const stabilityPool = await this.deployContract("StabilityPool", [
+      prismaCore.address,
+    ]);
+    const priceFeedPyth = await this.deployContract("PriceFeedPyth", [
+      prismaCore.address,
+    ]);
+
+    const multiCollateralHintHelpers = await this.deployContract(
+      "MultiCollateralHintHelpers",
+      [prismaCore.address]
+    );
+    const nultiTroveGetter = await this.deployContract("MultiTroveGetter", [
+      prismaCore.address,
+    ]);
+    const troveManagerGetters = await this.deployContract(
+      "TroveManagerGetters",
+      [factory.address]
     );
 
+    // const activePool = await this.deployContract("ActivePool", symbol);
+    // const borrowerOperations = await this.deployContract(
+    //   "BorrowerOperations",
+    //   symbol
+    // );
+    // const collSurplusPool = await this.deployContract(
+    //   "CollSurplusPool",
+    //   symbol
+    // );
+    // const defaultPool = await this.deployContract("DefaultPool", symbol);
+    // const gasPool = await this.deployContract("GasPool", symbol);
+    // const governance = await this.deployContract("Governance", symbol);
+    // const hintHelpers = await this.deployContract("HintHelpers", symbol);
+    // const multiTroveGetter = await this.deployContract(
+    //   "MultiTroveGetter",
+    //   symbol
+    // );
+    // const onez = await this.deployContract(`ONEZ`);
+    // const priceFeed = await this.deployContract("PriceFeed", symbol);
+    // const sortedTroves = await this.deployContract("SortedTroves", symbol);
+    // const stabilityPool = await this.deployContract("StabilityPool", symbol);
+    // const troveManager = await this.deployContract("TroveManager", symbol);
+
+    // console.log(`- Done deploying ONEZ contracts`);
+
+    // return {
+    //   onez,
+    //   governance,
+    //   // lendingPool,
+    //   sortedTroves,
+    //   troveManager,
+    //   activePool,
+    //   stabilityPool,
+    //   gasPool,
+    //   defaultPool,
+    //   collSurplusPool,
+    //   borrowerOperations,
+    //   hintHelpers,
+    //   multiTroveGetter,
+    //   priceFeed,
+    // };
+  }
+
+  private async deployDao(): Promise<any> {
+    console.log(`------ Deploying DAO contracts ------`);
+    const gasCompenstaion = 0;
+
+    // first check if there is a lending pool
+    // const lendingPool = await this.deployMockLendingPool(token);
+
+    const prismaCore = await this.deployContract("PrismaCore");
+    const factory = await this.deployContract("Factory", [prismaCore.address]);
+    const borrowerOperations = await this.deployContract(
+      "BorrowerOperations",
+
+      [prismaCore.address, gasCompenstaion]
+    );
+    const debtTokenOnezProxy = await this.deployContract("DebtTokenOnezProxy");
+    const onez = await this.deployContract("ONEZ");
+    const gasPool = await this.deployContract("GasPool");
+    const liquidationManager = await this.deployContract("LiquidationManager", [
+      gasCompenstaion,
+    ]);
+    const SortedTroves = await this.deployContract("SortedTroves");
+    const StabilityPool = await this.deployContract("StabilityPool", [
+      prismaCore.address,
+    ]);
     // const activePool = await this.deployContract("ActivePool", symbol);
     // const borrowerOperations = await this.deployContract(
     //   "BorrowerOperations",

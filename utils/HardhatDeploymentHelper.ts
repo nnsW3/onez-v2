@@ -1,5 +1,5 @@
 import { Contract, ContractFactory, ContractTransaction } from "ethers";
-import BaseDeploymentHelper from "./BaseDeploymentHelper";
+import BaseDeploymentHelper from "./base/BaseDeploymentHelper";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { IParams } from "./interfaces";
 import { ethers } from "hardhat";
@@ -34,15 +34,12 @@ export default class HardhatDeploymentHelper extends BaseDeploymentHelper {
   }
 
   async deployContract<T extends Contract>(
-    factoryName: string,
-    prefix = "",
+    name: string,
     params: any[] = []
   ): Promise<T> {
-    const name = `${prefix}${factoryName}`;
-
     console.log(`- Deploying ${name}`);
 
-    const factory = await this.getFactory(factoryName);
+    const factory = await this.getFactory(name);
     const contract = (await factory.deploy(...params, {
       gasPrice: this.config.GAS_PRICE,
     })) as T;

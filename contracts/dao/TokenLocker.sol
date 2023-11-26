@@ -19,7 +19,7 @@ contract TokenLocker is PrismaOwnable, SystemStart {
     // number of active locks that a single account may open. Weight is calculated as:
     // `[balance] * [weeks to unlock]`. Weights are stored as `uint40` and balances as `uint32`,
     // so the max lock weeks cannot be greater than 256 or the system could break due to overflow.
-    uint256 public constant MAX_LOCK_WEEKS = 52;
+    uint256 public constant MAX_LOCK_WEEKS = 52 * 4;
 
     // Multiplier applied during token deposits and withdrawals. A balance within this
     // contract corresponds to a deposit of `balance * lockToTokenRatio` tokens. Balances
@@ -76,6 +76,7 @@ contract TokenLocker is PrismaOwnable, SystemStart {
 
     // week -> total lock weight
     uint40[65535] totalWeeklyWeights;
+
     // week -> tokens to unlock in this week
     uint32[65535] totalWeeklyUnlocks;
 
@@ -116,7 +117,6 @@ contract TokenLocker is PrismaOwnable, SystemStart {
         incentiveVoter = _voter;
         prismaCore = IPrismaCore(_prismaCore);
         deploymentManager = _manager;
-
         lockToTokenRatio = _lockToTokenRatio;
     }
 

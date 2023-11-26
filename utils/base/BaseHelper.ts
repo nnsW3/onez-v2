@@ -1,6 +1,6 @@
 import { Contract } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { IParams, IState } from "./interfaces";
+import { IParams, IState } from "../interfaces";
 import * as ethers from "ethers";
 import fs from "fs";
 
@@ -37,10 +37,6 @@ export default abstract class BaseHelper {
     fs.writeFileSync(this.config.OUTPUT_FILE, state);
   }
 
-  // --- Deployer methods ---
-
-  // abstract getFactory(name: string): Promise<ethers.ContractFactory>; // => await this.deployer.loadArtifact(name);
-
   abstract sendAndWaitForTransaction(
     txPromise: ethers.ContractTransaction
   ): Promise<void>;
@@ -49,7 +45,6 @@ export default abstract class BaseHelper {
 
   abstract deployContract<T extends Contract>(
     factoryName: string,
-    prefix?: string,
     params?: any[]
   ): Promise<T>;
 

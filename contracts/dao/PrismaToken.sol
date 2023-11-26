@@ -13,8 +13,8 @@ import {OFTV2, IERC20, ERC20} from "@layerzerolabs/solidity-examples/contracts/t
 contract PrismaToken is OFTV2, IERC2612 {
     // --- ERC20 Data ---
 
-    string internal constant _NAME = "Prisma Governance Token";
-    string internal constant _SYMBOL = "PRISMA";
+    string internal constant _NAME = "NULLZ Incentive Token";
+    string internal constant _SYMBOL = "NULLZ";
     string public constant version = "1";
 
     // --- EIP 2612 Data ---

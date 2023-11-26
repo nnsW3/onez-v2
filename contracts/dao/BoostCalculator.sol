@@ -60,7 +60,11 @@ contract BoostCalculator is SystemStart {
     // account -> week -> % of lock weight (where 1e9 represents 100%)
     mapping(address account => uint32[65535]) accountWeeklyLockPct;
 
-    constructor(address _prismaCore, ITokenLocker _locker, uint256 _graceWeeks) SystemStart(_prismaCore) {
+    constructor(
+        address _prismaCore,
+        ITokenLocker _locker,
+        uint256 _graceWeeks
+    ) SystemStart(_prismaCore) {
         require(_graceWeeks > 0, "Grace weeks cannot be 0");
         locker = _locker;
         MAX_BOOST_GRACE_WEEKS = _graceWeeks + getWeek();
@@ -89,7 +93,13 @@ contract BoostCalculator is SystemStart {
         if (totalWeight == 0) totalWeight = 1;
         uint256 pct = (1e9 * accountWeight) / totalWeight;
         if (pct == 0) pct = 1;
-        return _getBoostedAmount(amount, previousAmount, totalWeeklyEmissions, pct);
+        return
+            _getBoostedAmount(
+                amount,
+                previousAmount,
+                totalWeeklyEmissions,
+                pct
+            );
     }
 
     /**
@@ -161,7 +171,13 @@ contract BoostCalculator is SystemStart {
             accountWeeklyLockPct[account][week] = uint32(pct);
         }
 
-        return _getBoostedAmount(amount, previousAmount, totalWeeklyEmissions, pct);
+        return
+            _getBoostedAmount(
+                amount,
+                previousAmount,
+                totalWeeklyEmissions,
+                pct
+            );
     }
 
     function _getBoostedAmount(
@@ -197,16 +213,23 @@ contract BoostCalculator is SystemStart {
         }
 
         // simplified calculation if remaining claim is the entire decay amount
-        if (amount == maxBoostable) return adjustedAmount + ((maxBoostable * 3) / 4);
+        if (amount == maxBoostable)
+            return adjustedAmount + ((maxBoostable * 3) / 4);
 
         // remaining calculations handle claim that spans only part of the decay
 
         // get adjusted amount based on the final boost
-        uint256 finalBoosted = amount - (amount * (previousAmount + amount - maxBoostable)) / maxBoostable / 2;
+        uint256 finalBoosted = amount -
+            (amount * (previousAmount + amount - maxBoostable)) /
+            maxBoostable /
+            2;
         adjustedAmount += finalBoosted;
 
         // get adjusted amount based on the initial boost
-        uint256 initialBoosted = amount - (amount * (previousAmount - maxBoostable)) / maxBoostable / 2;
+        uint256 initialBoosted = amount -
+            (amount * (previousAmount - maxBoostable)) /
+            maxBoostable /
+            2;
         // with linear decay, adjusted amount is half of the difference between initial and final boost amounts
         adjustedAmount += (initialBoosted - finalBoosted) / 2;
 

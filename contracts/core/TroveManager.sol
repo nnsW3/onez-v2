@@ -13,7 +13,6 @@ import "../interfaces/ISortedTroves.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IWrappedLendingCollateral.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /**
     @title Prisma Trove Manager
@@ -27,14 +26,14 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
             Functionality related to liquidations has been moved to `LiquidationManager`. This was
             necessary to avoid the restriction on deployed bytecode size.
  */
-contract TroveManager is Initializable, PrismaBase, PrismaOwnable, SystemStart {
+contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
     // --- Connected contract declarations ---
 
-    address public borrowerOperationsAddress;
-    address public liquidationManager;
-    address gasPoolAddress;
-    IDebtTokenOnezProxy public debtToken;
-    IPrismaVault public vault;
+    address public immutable borrowerOperationsAddress;
+    address public immutable liquidationManager;
+    address immutable gasPoolAddress;
+    IDebtTokenOnezProxy public immutable debtToken;
+    IPrismaVault public immutable vault;
 
     IPriceFeed public priceFeed;
     IWrappedLendingCollateral public collateralToken;
@@ -244,24 +243,17 @@ contract TroveManager is Initializable, PrismaBase, PrismaOwnable, SystemStart {
 
     constructor(
         address _prismaCore,
-        uint256 _gasCompensation
-    )
-        PrismaOwnable(_prismaCore)
-        PrismaBase(_gasCompensation)
-        SystemStart(_prismaCore)
-    {}
-
-    function initialize(
         address _gasPoolAddress,
         address _debtTokenAddress,
         address _borrowerOperationsAddress,
         address _vault,
         address _liquidationManager,
-        address _priceFeedAddress,
-        address _sortedTrovesAddress,
-        address _collateralToken
-    ) external initializer {
-        require(address(sortedTroves) == address(0));
+        uint256 _gasCompensation
+    )
+        PrismaOwnable(_prismaCore)
+        PrismaBase(_gasCompensation)
+        SystemStart(_prismaCore)
+    {
         gasPoolAddress = _gasPoolAddress;
         debtToken = IDebtTokenOnezProxy(_debtTokenAddress);
         borrowerOperationsAddress = _borrowerOperationsAddress;
@@ -270,6 +262,14 @@ contract TroveManager is Initializable, PrismaBase, PrismaOwnable, SystemStart {
 
         // give max approval to the proxy to allow burn and transfers
         debtToken.underlying().approve(_debtTokenAddress, type(uint256).max);
+    }
+
+    function setAddresses(
+        address _priceFeedAddress,
+        address _sortedTrovesAddress,
+        address _collateralToken
+    ) external {
+        require(address(sortedTroves) == address(0));
         priceFeed = IPriceFeed(_priceFeedAddress);
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         collateralToken = IWrappedLendingCollateral(_collateralToken);

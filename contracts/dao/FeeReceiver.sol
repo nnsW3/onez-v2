@@ -10,11 +10,19 @@ contract FeeReceiver is PrismaOwnable {
 
     constructor(address _prismaCore) PrismaOwnable(_prismaCore) {}
 
-    function transferToken(IERC20 token, address receiver, uint256 amount) external onlyOwner {
+    function transferToken(
+        IERC20 token,
+        address receiver,
+        uint256 amount
+    ) external onlyOwner {
         token.safeTransfer(receiver, amount);
     }
 
-    function setTokenApproval(IERC20 token, address spender, uint256 amount) external onlyOwner {
+    function setTokenApproval(
+        IERC20 token,
+        address spender,
+        uint256 amount
+    ) external onlyOwner {
         token.safeApprove(spender, amount);
     }
 }

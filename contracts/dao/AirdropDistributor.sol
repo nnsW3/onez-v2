@@ -10,7 +10,10 @@ import "../interfaces/ITokenLocker.sol";
 import "../interfaces/IVault.sol";
 
 interface IClaimCallback {
-    function claimCallback(address claimant, uint256 amount) external returns (bool success);
+    function claimCallback(
+        address claimant,
+        uint256 amount
+    ) external returns (bool success);
 }
 
 /**
@@ -39,10 +42,20 @@ contract AirdropDistributor is Ownable {
     uint256 private immutable CLAIM_LOCK_WEEKS;
     uint256 public constant CLAIM_DURATION = 13 weeks;
 
-    event Claimed(address indexed claimant, address indexed receiver, uint256 index, uint256 amount);
+    event Claimed(
+        address indexed claimant,
+        address indexed receiver,
+        uint256 index,
+        uint256 amount
+    );
     event MerkleRootSet(bytes32 root, uint256 canClaimUntil);
 
-    constructor(IERC20 _token, ITokenLocker _locker, address _vault, uint256 lockWeeks) {
+    constructor(
+        IERC20 _token,
+        ITokenLocker _locker,
+        address _vault,
+        uint256 lockWeeks
+    ) {
         token = _token;
         locker = _locker;
         vault = _vault;
@@ -79,7 +92,9 @@ contract AirdropDistributor is Ownable {
     function _setClaimed(uint256 index) private {
         uint256 claimedWordIndex = index / 256;
         uint256 claimedBitIndex = index % 256;
-        claimedBitMap[claimedWordIndex] = claimedBitMap[claimedWordIndex] | (1 << claimedBitIndex);
+        claimedBitMap[claimedWordIndex] =
+            claimedBitMap[claimedWordIndex] |
+            (1 << claimedBitIndex);
     }
 
     /**
@@ -102,7 +117,10 @@ contract AirdropDistributor is Ownable {
         require(!isClaimed(index), "Already claimed");
 
         bytes32 node = keccak256(abi.encodePacked(index, claimant, amount));
-        require(MerkleProof.verifyCalldata(merkleProof, merkleRoot, node), "Invalid proof");
+        require(
+            MerkleProof.verifyCalldata(merkleProof, merkleRoot, node),
+            "Invalid proof"
+        );
 
         _setClaimed(index);
         token.transferFrom(vault, address(this), amount * lockToTokenRatio);
@@ -110,7 +128,8 @@ contract AirdropDistributor is Ownable {
 
         if (claimant != receiver) {
             address callback = claimCallback[receiver];
-            if (callback != address(0)) IClaimCallback(callback).claimCallback(claimant, amount);
+            if (callback != address(0))
+                IClaimCallback(callback).claimCallback(claimant, amount);
         }
 
         emit Claimed(claimant, receiver, index, amount * lockToTokenRatio);
