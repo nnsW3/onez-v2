@@ -258,6 +258,10 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
         delete indexByCollateral[collateral]; //This will prevent calls to the SP in case of liquidations
     }
 
+    function setVault(IPrismaVault _vault) external onlyOwner {
+        vault = _vault;
+    }
+
     function getTotalDebtTokenDeposits() external view returns (uint256) {
         return totalDebtTokenDeposits;
     }
