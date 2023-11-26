@@ -1,194 +1,152 @@
-import { Contract } from "ethers";
-import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Provider } from "zksync-web3";
-import * as ethers from "ethers";
-import fs from "fs";
-import { IParams, IState } from "./interfaces";
+import { formatEther } from "ethers/lib/utils";
+import { ICollateral, ICoreContracts } from "./interfaces";
+import BaseHelper from "./BaseHelper";
+import bluebird from "bluebird";
 
-export default class BaseDeploymentHelper {
-  hre: HardhatRuntimeEnvironment;
-  deployer: Deployer;
+export default abstract class BaseDeploymentHelper extends BaseHelper {
+  public async deploy(verify = false) {
+    const wallet = this.getEthersSigner();
+    const balBefore = formatEther(await wallet.getBalance());
+    console.log(`Deployer ETH balance before: ${balBefore}`);
 
-  public state: IState;
-  public config: IParams;
-  public skipSave: boolean;
+    const result = await bluebird.mapSeries(
+      this.config.COLLATERALS,
+      async (token) => {
+        console.log();
 
-  constructor(
-    configParams: IParams,
-    deployer: Deployer,
-    hre: HardhatRuntimeEnvironment,
-    skipSave: boolean = false
-  ) {
-    this.state = {};
-    this.hre = hre;
-    this.config = configParams;
-    this.deployer = deployer;
-    this.skipSave = skipSave;
-  }
+        const core = await this.deployLiquityCore(token);
+        await this.addONEZFacilitator(core, token);
 
-  loadPreviousDeployment() {
-    if (fs.existsSync(this.config.OUTPUT_FILE)) {
-      console.log();
-      console.log(`------  Loading previous deployment ------ `);
-      this.state = require("../" + this.config.OUTPUT_FILE);
-      console.log(`------  Done loading previous deployment ------ `);
-      console.log();
-    }
-  }
+        console.log(
+          `------ Done deploying contracts for ${token.symbol} collateral ------`
+        );
 
-  saveDeployment(_state: IState) {
-    const state = JSON.stringify(_state, null, 2);
-    fs.writeFileSync(this.config.OUTPUT_FILE, state);
-  }
+        // if (verify) await this.verifyContracts(token.symbol);
+        console.log();
 
-  // --- Deployer methods ---
-
-  getFactory = async (name: string) => await this.deployer.loadArtifact(name);
-
-  async sendAndWaitForTransaction(txPromise) {
-    const tx = await txPromise;
-    if (this.config.TX_CONFIRMATIONS === 0) return tx.hash;
-    const minedTx = await this.deployer.ethWallet.provider.waitForTransaction(
-      tx.hash,
-      this.config.TX_CONFIRMATIONS
-    );
-    return minedTx;
-  }
-
-  getEthersSigner = (privateKey?: string) =>
-    new ethers.Wallet(
-      privateKey || this.deployer.ethWallet.privateKey,
-      this.getEthersProvider()
-    );
-
-  getEthersProvider = () => new Provider(this.config.RPC_URL);
-
-  async getSavedContract<T extends Contract>(
-    factoryN: string,
-    prefix: string,
-    wallet?: ethers.ethers.Wallet
-  ) {
-    const id = `${prefix}${factoryN}`;
-    return await this.getContract<T>(this.state[id].address, factoryN, wallet);
-  }
-
-  async getContract<T extends Contract>(
-    factoryN: string,
-    address: string,
-    wallet?: ethers.ethers.Wallet
-  ) {
-    const factory = await this.getFactory(factoryN);
-    return await this.loadContract<T>(address, factory.abi, wallet);
-  }
-
-  // --- Verify on Ethrescan ---
-
-  protected async verifyContract(
-    name: string,
-    constructorArguments: any[] = []
-  ) {
-    if (!this.state[name] || !this.state[name].address) {
-      console.error(`- No deployment state for contract ${name}!!`);
-      return;
-    }
-
-    if (this.state[name].verification) {
-      console.log(`- Contract ${name} already verified`);
-      return;
-    }
-
-    try {
-      console.log(`- Contract ${name} is being verified`);
-      await this.hre.run("verify:verify", {
-        address: this.state[name].address,
-        constructorArguments,
-      });
-    } catch (error) {
-      console.log(error);
-      if (error.name != "NomicLabsHardhatPluginError") {
-        console.error(`- Error verifying: ${error.name}`);
-        console.error(error);
-        return;
+        return { core, token };
       }
-    }
+    );
 
-    this.state[
-      name
-    ].verification = `${this.config.ETHERSCAN_BASE_URL}/address/${this.state[name].address}#code`;
-    this.saveDeployment(this.state);
+    const balAfter = formatEther(await wallet.getBalance());
+    console.log(`Deployer ETH balance after: ${balAfter}`);
+
+    return result;
   }
 
-  // --- Helpers ---
+  private async deployLiquityCore(token: ICollateral): Promise<ICoreContracts> {
+    const symbol = token.symbol;
+    console.log(`------ Deploying contracts for ${symbol} collateral ------`);
 
-  protected async loadContract<T extends Contract>(
-    address: string,
-    abi: any[],
-    wallet?: ethers.ethers.Wallet
-  ) {
-    return new ethers.Contract(
-      address,
-      abi,
-      wallet || this.getEthersSigner()
-    ) as T;
-  }
+    // first check if there is a lending pool
+    const lendingPool = await this.deployMockLendingPool(token);
 
-  protected async _deploy<T extends Contract>(
-    factoryName: string,
-    prefix = "",
-    params: any[] = [],
-    proxy = false
-  ): Promise<T> {
-    const factory = await this.getFactory(factoryName);
+    const activePool = await this.deployContract("ActivePool", symbol);
+    const borrowerOperations = await this.deployContract(
+      "BorrowerOperations",
+      symbol
+    );
+    const collSurplusPool = await this.deployContract(
+      "CollSurplusPool",
+      symbol
+    );
+    const defaultPool = await this.deployContract("DefaultPool", symbol);
+    const gasPool = await this.deployContract("GasPool", symbol);
+    const governance = await this.deployContract("Governance", symbol);
+    const hintHelpers = await this.deployContract("HintHelpers", symbol);
+    const multiTroveGetter = await this.deployContract(
+      "MultiTroveGetter",
+      symbol
+    );
+    const onez = await this.deployContract(`ONEZ`);
+    const priceFeed = await this.deployContract("PriceFeed", symbol);
+    const sortedTroves = await this.deployContract("SortedTroves", symbol);
+    const stabilityPool = await this.deployContract("StabilityPool", symbol);
+    const troveManager = await this.deployContract("TroveManager", symbol);
 
-    const name = `${prefix}${factoryName}`;
+    console.log(`- Done deploying ONEZ contracts`);
 
-    if (this.state[name] && this.state[name].address) {
-      console.log(
-        `- Using previously deployed ${name} contract at address ${this.state[name].address}`
-      );
-      return this.loadContract<T>(this.state[name].address, factory.abi);
-    }
-
-    // console.log("- Deploying a proxy", proxy);
-
-    console.log(`- Deploying ${name} with proxy: ${proxy}`);
-    const contract = (await this.deployer.deploy(factory, params, {
-      gasPrice: this.config.GAS_PRICE,
-    })) as T;
-
-    // wait for the tx
-    if (this.config.TX_CONFIRMATIONS > 0) {
-      const provider = this.getEthersProvider();
-      await provider.waitForTransaction(
-        contract.deployTransaction.hash,
-        this.config.TX_CONFIRMATIONS
-      );
-    }
-
-    console.log(`- Deployed ${name} at ${contract.address}`);
-    this.state[name] = {
-      abi: factoryName || name,
-      address: contract.address,
-      txHash: contract.deployTransaction.hash,
+    return {
+      onez,
+      governance,
+      lendingPool,
+      sortedTroves,
+      troveManager,
+      activePool,
+      stabilityPool,
+      gasPool,
+      defaultPool,
+      collSurplusPool,
+      borrowerOperations,
+      hintHelpers,
+      multiTroveGetter,
+      priceFeed,
     };
-
-    this.saveDeployment(this.state);
-    return contract;
-    // return proxyImplementationFactory
-    //   ? this._loadContract(contract.address, proxyImplementationFactory.abi)
-    //   : contract;
   }
 
-  protected async _init(name: string, contract: Contract, params: any[]) {
-    const gasPrice = this.config.GAS_PRICE;
-
-    console.log(`- Set addresses in ${name}`);
-    const can = await contract.canInitialize();
-    if (can)
-      await this.sendAndWaitForTransaction(
-        contract.setAddresses(...params, { gasPrice })
+  private async deployMockLendingPool(
+    token: ICollateral
+  ): Promise<ILendingPool> {
+    if (this.config.LENDING_POOL_ADDRESS !== "") {
+      const factory = await this.getFactory("ILendingPool");
+      const lendingPool = await this.loadContract<ILendingPool>(
+        this.config.LENDING_POOL_ADDRESS,
+        factory.abi
       );
-    else console.log(`- Already initialized ${name}`);
+      return lendingPool;
+    }
+    console.log(`- Deploying mock lending pool`);
+
+    // if we don't have a lending pool, then make a mock one
+    const pool = await this.deployContract(`MockLendingPool`);
+
+    console.log(`- Initializing reserve for ${token.symbol}`);
+    await this.sendAndWaitForTransaction(pool.initReserve(token.address));
+    console.log(`- Done initializing reserves for ${token.symbol}`);
+    return pool;
   }
+
+  private async addONEZFacilitator(core: ICoreContracts, token: ICollateral) {
+    console.log(`- Adding ONEZ facilitator ${token.symbol}`);
+
+    const facilitator = await core.onez.getFacilitator(
+      core.borrowerOperations.address
+    );
+
+    if (facilitator.bucketCapacity.gt(0)) {
+      console.log(`- ONEZ facilitator already exists`);
+      return;
+    }
+
+    await this.sendAndWaitForTransaction(
+      core.onez.addFacilitator(
+        core.borrowerOperations.address, // address facilitatorAddress,
+        `trove-${token}`, // string calldata facilitatorLabel,
+        token.capacityE18 // uint128 bucketCapacity
+      )
+    );
+
+    console.log(`- Done adding ONEZ facilitator`);
+  }
+
+  // public async verifyContracts(symbol: string) {
+  //   if (!this.config.ETHERSCAN_BASE_URL)
+  //     return console.log("- No Etherscan URL defined, skipping verification");
+
+  //   await this.verifyContract("NULLZ");
+  //   await this.verifyContract(`${symbol}ActivePool`);
+  //   await this.verifyContract(`${symbol}BorrowerOperations`);
+  //   await this.verifyContract(`${symbol}CollSurplusPool`);
+  //   await this.verifyContract(`${symbol}CommunityIssuance`);
+  //   await this.verifyContract(`${symbol}DefaultPool`);
+  //   await this.verifyContract(`${symbol}GasPool`);
+  //   await this.verifyContract(`${symbol}Governance`);
+  //   await this.verifyContract(`${symbol}HintHelpers`);
+  //   await this.verifyContract(`${symbol}MultiTroveGetter`);
+  //   await this.verifyContract(`${symbol}PriceFeed`);
+  //   await this.verifyContract(`${symbol}SortedTroves`);
+  //   await this.verifyContract(`${symbol}StabilityPool`);
+  //   await this.verifyContract(`${symbol}TroveManager`);
+  //   await this.verifyContract(`ONEZ`);
+  // }
 }

@@ -1,246 +1,51 @@
-import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
-import {
-  ICollateral,
-  ICoreContractsTestnet,
-  INullzContracts,
-  IParams,
-} from "./interfaces";
-import { Wallet } from "zksync-web3";
-import * as hre from "hardhat";
-import {
-  ActivePool,
-  BorrowerOperations,
-  CollSurplusPool,
-  CommunityIssuance,
-  DefaultPool,
-  GasPool,
-  Governance,
-  HintHelpers,
-  MintableERC20,
-  MockLendingPool,
-  MockPyth,
-  MultiTroveGetter,
-  NULLZ,
-  ONEZ,
-  PriceFeed,
-  SortedTroves,
-  StabilityPool,
-  TroveManagerTester,
-} from "../output/typechain";
-import { ITestnetWallet } from "../test/utils/wallets";
+import { Contract } from "ethers";
 import BaseDeploymentHelper from "./BaseDeploymentHelper";
 
-const maxBytes32 = "0x" + "f".repeat(64);
-
 export default class HardhatDeploymentHelper extends BaseDeploymentHelper {
-  constructor(configParams: IParams, who: ITestnetWallet) {
-    super(
-      configParams,
-      new Deployer(hre, new Wallet(who.privateKey)),
-      hre,
-      true
-    );
-  }
+  async deployContract<T extends Contract>(
+    factoryName: string,
+    prefix = "",
+    params: any[] = [],
+    proxy = false
+  ): Promise<T> {
+    const factory = await this.getFactory(factoryName);
 
-  async deployLiquityCore(token: ICollateral): Promise<ICoreContractsTestnet> {
-    const weth = await this._deploy<MintableERC20>("MintableERC20", "", [
-      token.symbol,
-      token.symbol,
-      token.decimals,
-    ]);
+    const name = `${prefix}${factoryName}`;
 
-    token.address = weth.address;
+    if (this.state[name] && this.state[name].address) {
+      console.log(
+        `- Using previously deployed ${name} contract at address ${this.state[name].address}`
+      );
+      return this.loadContract<T>(this.state[name].address, factory.abi);
+    }
 
-    const lendingPool = await this.deployMockLendingPool(weth.address);
-    const pyth = await this.deployMockPyth(token);
+    // console.log("- Deploying a proxy", proxy);
 
-    const activePool = await this._deploy<ActivePool>("ActivePool");
-    const borrowerOperations = await this._deploy<BorrowerOperations>(
-      "BorrowerOperations"
-    );
-    const collSurplusPool = await this._deploy<CollSurplusPool>(
-      "CollSurplusPool"
-    );
-    const defaultPool = await this._deploy<DefaultPool>("DefaultPool");
-    const gasPool = await this._deploy<GasPool>("GasPool");
-    const governance = await this._deploy<Governance>("Governance");
-    const hintHelpers = await this._deploy<HintHelpers>("HintHelpers");
-    const multiTroveGetter = await this._deploy<MultiTroveGetter>(
-      "MultiTroveGetter"
-    );
-    const onez = await this._deploy<ONEZ>(`ONEZ`);
-    const priceFeed = await this._deploy<PriceFeed>("PriceFeed");
-    const sortedTroves = await this._deploy<SortedTroves>("SortedTroves");
-    const stabilityPool = await this._deploy<StabilityPool>("StabilityPool");
-    const troveManager = await this._deploy<TroveManagerTester>(
-      "TroveManagerTester"
-    );
+    console.log(`- Deploying ${name} with proxy: ${proxy}`);
+    const contract = (await this.deployer.deploy(factory, params, {
+      gasPrice: this.config.GAS_PRICE,
+    })) as T;
 
-    return {
-      onez,
-      pyth,
-      governance,
-      weth,
-      lendingPool,
-      sortedTroves,
-      troveManager,
-      activePool,
-      stabilityPool,
-      gasPool,
-      defaultPool,
-      collSurplusPool,
-      borrowerOperations,
-      hintHelpers,
-      multiTroveGetter,
-      priceFeed,
+    // wait for the tx
+    if (this.config.TX_CONFIRMATIONS > 0) {
+      const provider = this.getEthersProvider();
+      await provider.waitForTransaction(
+        contract.deployTransaction.hash,
+        this.config.TX_CONFIRMATIONS
+      );
+    }
+
+    console.log(`- Deployed ${name} at ${contract.address}`);
+    this.state[name] = {
+      abi: factoryName || name,
+      address: contract.address,
+      txHash: contract.deployTransaction.hash,
     };
-  }
 
-  async deployNULLZContracts(): Promise<INullzContracts> {
-    const nullz = await this._deploy<NULLZ>("NULLZ");
-    const communityIssuance = await this._deploy<CommunityIssuance>(
-      `CommunityIssuance`
-    );
-
-    return {
-      communityIssuance,
-      nullz,
-    };
-  }
-
-  async deployMockLendingPool(tokenAddress: string) {
-    const pool = await this._deploy(`MockLendingPool`);
-    await pool.initReserve(tokenAddress);
-    return pool as MockLendingPool;
-  }
-
-  async deployMockPyth(token: ICollateral) {
-    const pyth = (await this._deploy(`MockPyth`)) as MockPyth;
-    await pyth.setPrice(token.pythId, 1800 * 1e8, -8);
-    return pyth;
-  }
-
-  // --- Connector methods ---
-
-  async connectCoreContracts(
-    core: ICoreContractsTestnet,
-    gov: INullzContracts,
-    token: ICollateral
-  ) {
-    await this._init("", core.priceFeed, [
-      core.pyth.address, // address _pyth,
-      token.pythId, // bytes32 _priceId,
-      token.decimals, // uint8 _assetDecimals
-    ]);
-
-    await this._init("", core.governance, [
-      this.config.ADMIN_ADDRESS,
-      core.troveManager.address,
-      core.borrowerOperations.address,
-      core.priceFeed.address,
-      this.config.DEPLOYER_ADDRESS,
-    ]);
-
-    await this._init("", core.sortedTroves, [
-      maxBytes32,
-      core.troveManager.address,
-      core.borrowerOperations.address,
-    ]);
-
-    await this._init("", core.troveManager, [
-      core.borrowerOperations.address,
-      core.activePool.address,
-      core.defaultPool.address,
-      core.stabilityPool.address,
-      core.gasPool.address,
-      core.collSurplusPool.address,
-      core.onez.address,
-      core.sortedTroves.address,
-      core.governance.address,
-      token.address,
-    ]);
-
-    await this._init("", core.borrowerOperations, [
-      core.troveManager.address,
-      core.activePool.address,
-      core.defaultPool.address,
-      core.stabilityPool.address,
-      core.gasPool.address,
-      core.collSurplusPool.address,
-      core.sortedTroves.address,
-      core.onez.address,
-      token.address,
-      core.governance.address,
-    ]);
-
-    await this._init("", core.stabilityPool, [
-      core.borrowerOperations.address,
-      core.troveManager.address,
-      core.activePool.address,
-      core.onez.address,
-      core.sortedTroves.address,
-      token.address,
-      core.governance.address,
-    ]);
-
-    await this._init("", core.activePool, [
-      core.borrowerOperations.address,
-      core.troveManager.address,
-      core.stabilityPool.address,
-      core.defaultPool.address,
-      core.collSurplusPool.address,
-      core.lendingPool.address,
-      token.address,
-    ]);
-
-    await this._init("", core.defaultPool, [
-      core.troveManager.address,
-      core.activePool.address,
-      token.address,
-    ]);
-
-    await this._init("", core.gasPool, [
-      core.onez.address,
-      core.troveManager.address,
-      core.borrowerOperations.address,
-    ]);
-
-    await this._init("", core.multiTroveGetter, [
-      core.troveManager.address,
-      core.sortedTroves.address,
-    ]);
-
-    await this._init("", core.collSurplusPool, [
-      core.borrowerOperations.address,
-      core.troveManager.address,
-      core.activePool.address,
-      token.address,
-    ]);
-
-    await this._init("", core.hintHelpers, [
-      core.sortedTroves.address,
-      core.troveManager.address,
-    ]);
-
-    await this._init("", gov.communityIssuance, [
-      gov.nullz.address,
-      core.stabilityPool.address,
-      86400 * 30,
-    ]);
-
-    await this.addONEZFacilitator(core, token);
-  }
-
-  private async addONEZFacilitator(
-    core: ICoreContractsTestnet,
-    token: ICollateral
-  ) {
-    await this.sendAndWaitForTransaction(
-      core.onez.addFacilitator(
-        core.borrowerOperations.address, // address facilitatorAddress,
-        `trove-${token}`, // string calldata facilitatorLabel,
-        token.capacityE18 // uint128 bucketCapacity
-      )
-    );
+    this.saveDeployment(this.state);
+    return contract;
+    // return proxyImplementationFactory
+    //   ? this._loadContract(contract.address, proxyImplementationFactory.abi)
+    //   : contract;
   }
 }

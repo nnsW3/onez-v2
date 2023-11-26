@@ -15,5 +15,4 @@ ONEZ is a self-repaying stablecoin which means users will be able to repay their
 
 - Support for multiple ERC20 tokens.
 - Deposits collateral into [ZeroLend](https://app.zerolend.xyz/) to earn an extra yield.
-- Taxes implemented on the `NULLZ` governance token which contributes back to liquidity.
 - veStaking for the `NULLZ` token with the ability to stake `NULLZ` for 4 years.
