@@ -26,6 +26,7 @@ import {
   MockLendingPool,
   MockPyth,
   MintableERC20,
+  WrappedLendingCollateral,
 } from "../../typechain";
 import {
   ICollateral,
@@ -61,7 +62,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
         const contracts = await this.addCollateral(core, gov, external, token);
 
         return {
-          contracts,
+          wCollateral: contracts.wrappedLendingCollateral,
           token,
         };
       }
@@ -287,9 +288,26 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
   ) {
     this.log(`------ Adding collateral ${token.symbol} ------`);
 
-    const wrappedLendingCollateral = await this.deployContract<TroveManager>(
-      "WrappedLendingCollateral",
-      [token.symbol, token.symbol, external.lendingPool.address, token.address]
+    const wrappedLendingCollateral =
+      await this.deployContract<WrappedLendingCollateral>(
+        "WrappedLendingCollateral",
+        [
+          token.symbol,
+          token.symbol,
+          external.lendingPool.address,
+          token.address,
+        ]
+      );
+
+    await this.waitForTx(
+      core.priceFeedPyth.setOracle(
+        wrappedLendingCollateral.address,
+        token.pythId
+      )
+    );
+
+    await this.waitForTx(
+      core.priceFeedPyth.setOracle(token.address, token.pythId)
     );
 
     await this.waitForTx(

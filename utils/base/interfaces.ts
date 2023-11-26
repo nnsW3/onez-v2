@@ -20,11 +20,17 @@ import {
   TokenLocker,
   TroveManager,
   TroveManagerGetters,
+  WrappedLendingCollateral,
 } from "../../typechain";
 
 export interface IExternalContracts {
   lendingPool: ILendingPool;
   pyth: IPyth;
+}
+
+export interface ITokenContracts {
+  wCollateral: WrappedLendingCollateral;
+  token: ICollateral;
 }
 
 export type ICollateral = {
