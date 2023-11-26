@@ -10,6 +10,7 @@ import "../dependencies/PrismaBase.sol";
 import "../dependencies/PrismaMath.sol";
 import "../dependencies/PrismaOwnable.sol";
 import "../dependencies/DelegatedOps.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
     @title Prisma Borrower Operations
@@ -23,7 +24,8 @@ contract BorrowerOperations is
     Initializable,
     PrismaBase,
     PrismaOwnable,
-    DelegatedOps
+    DelegatedOps,
+    ReentrancyGuard
 {
     IDebtTokenOnezProxy public debtToken;
     address public factory;
@@ -415,7 +417,7 @@ contract BorrowerOperations is
         bool _isDebtIncrease,
         address _upperHint,
         address _lowerHint
-    ) internal {
+    ) internal nonReentrant {
         require(
             _collDeposit != 0 || _collWithdrawal != 0 || _debtChange != 0,
             "BorrowerOps: There must be either a collateral change or a debt change"

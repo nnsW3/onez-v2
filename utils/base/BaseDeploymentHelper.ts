@@ -35,6 +35,9 @@ import {
   IExternalContracts,
 } from "./interfaces";
 import Bluebird from "bluebird";
+import { BigNumber } from "ethers";
+
+const e18 = BigNumber.from(10).pow(18);
 
 export default abstract class BaseDeploymentHelper extends BaseHelper {
   public async deploy() {
@@ -60,9 +63,10 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
       this.config.COLLATERALS,
       async (token) => {
         const contracts = await this.addCollateral(core, gov, external, token);
-
+        const erc20 = await this.loadOrDeployMockERC20(token);
         return {
           wCollateral: contracts.wrappedLendingCollateral,
+          erc20: erc20,
           token,
         };
       }
@@ -94,7 +98,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     const debtTokenOnezProxy = await this.deployContract<DebtTokenOnezProxy>(
       "DebtTokenOnezProxy"
     );
-    const onez = await this.deployContract<ONEZ>("ONEZ");
+    const onez = await this.loadOrDeployONEZ();
     const gasPool = await this.deployContract<GasPool>("GasPool");
     const liquidationManager = await this.deployContract<LiquidationManager>(
       "LiquidationManager",
@@ -194,6 +198,14 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
         core.factory.address, // address _factory,
         core.gasPool.address, // address _gasPool,
         gasCompenstaion // uint256 _gasCompensation
+      )
+    );
+
+    await this.waitForTx(
+      core.onez.addFacilitator(
+        core.debtTokenOnezProxy.address,
+        "Primsa-BO",
+        BigNumber.from(10).pow(24)
       )
     );
 
@@ -328,7 +340,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
           borrowingFeeFloor: "5000000000000000", // uint256 borrowingFeeFloor; // 1e18 / 1000 * 5  (0.5%)
           maxBorrowingFee: "50000000000000000", // uint256 maxBorrowingFee; // 1e18 / 100 * 5  (5%)
           interestRateInBps: "100", // uint256 interestRateInBps; // 100 (1%)
-          maxDebt: "0", // uint256 maxDebt;
+          maxDebt: e18.mul(1000000), // uint256 maxDebt;
           MCR: "1200000000000000000", // uint256 MCR; // 12 * 1e17  (120%)
         }
       )
@@ -374,24 +386,34 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
       const token = this.config.COLLATERALS[index];
       if (token.address !== ZERO_ADDRESS) continue;
 
-      this.log(`- Deploying mock token for ${token.symbol}`);
-
-      const instance = await this.deployContract<MintableERC20>(
-        `MintableERC20`,
-        [token.symbol, token.symbol]
-      );
-
+      const instance = await this.loadOrDeployMockERC20(token);
       this.config.COLLATERALS[index].address = instance.address;
     }
   }
 
-  private async loadOrDeployMockPyth() {
-    if (this.config.PYTH_ADDRESS != ZERO_ADDRESS)
-      return await this.getContract<IPyth>(
-        "MockPyth",
-        this.config.PYTH_ADDRESS
+  private async loadOrDeployMockERC20(token: ICollateral) {
+    if (token.address != ZERO_ADDRESS)
+      return await this.getContract<MintableERC20>(
+        "MintableERC20",
+        token.address
       );
 
+    this.log(`- Deploying mock token for ${token.symbol}`);
+    return await this.deployContract<MintableERC20>(`MintableERC20`, [
+      token.symbol,
+      token.symbol,
+    ]);
+  }
+
+  private async loadOrDeployONEZ() {
+    if (this.config.ONEZ != ZERO_ADDRESS)
+      return await this.getContract<ONEZ>("ONEZ", this.config.ONEZ);
+
+    this.log(`- Deploying mock onez token`);
+    return await this.deployContract<ONEZ>(`ONEZ`);
+  }
+
+  private async loadOrDeployMockPyth() {
     const pyth = await this.deployContract<MockPyth>(`MockPyth`);
 
     for (let index = 0; index < this.config.COLLATERALS.length; index++) {

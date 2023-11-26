@@ -6,8 +6,13 @@ import "../interfaces/ILendingPool.sol";
 import "../interfaces/IWrappedLendingCollateral.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract WrappedLendingCollateral is IWrappedLendingCollateral, ERC20 {
+contract WrappedLendingCollateral is
+    ReentrancyGuard,
+    IWrappedLendingCollateral,
+    ERC20
+{
     using SafeERC20 for IERC20;
 
     ILendingPool public pool;
@@ -31,6 +36,7 @@ contract WrappedLendingCollateral is IWrappedLendingCollateral, ERC20 {
 
         // give approval to the pool
         aToken.approve(address(_pool), type(uint256).max);
+        IERC20(underlying).approve(address(_pool), type(uint256).max);
     }
 
     function mint(uint256 amount) external override {
@@ -42,7 +48,7 @@ contract WrappedLendingCollateral is IWrappedLendingCollateral, ERC20 {
         address to,
         uint256 amount
     ) external override {
-        require(false);
+        // todo
         _mintFrom(from, to, amount);
     }
 
@@ -50,7 +56,11 @@ contract WrappedLendingCollateral is IWrappedLendingCollateral, ERC20 {
         _burnWithdraw(msg.sender, to, amount);
     }
 
-    function _burnWithdraw(address from, address to, uint256 amount) internal {
+    function _burnWithdraw(
+        address from,
+        address to,
+        uint256 amount
+    ) internal nonReentrant {
         _burn(from, amount);
 
         uint256 percentageOfSupply = (balanceOf(from) * 1e18) / totalSupply();
@@ -61,10 +71,13 @@ contract WrappedLendingCollateral is IWrappedLendingCollateral, ERC20 {
         pool.withdraw(address(underlying), aTokensToRedeem, to);
     }
 
-    function _mintFrom(address from, address to, uint256 amount) internal {
+    function _mintFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) internal nonReentrant {
+        _mint(to, amount);
         underlying.safeTransferFrom(from, address(this), amount);
         pool.supply(address(underlying), amount, address(this), 0);
-
-        _mint(to, amount);
     }
 }

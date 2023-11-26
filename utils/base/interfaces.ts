@@ -8,6 +8,7 @@ import {
   IPyth,
   IncentiveVoting,
   LiquidationManager,
+  MintableERC20,
   MultiCollateralHintHelpers,
   MultiTroveGetter,
   ONEZ,
@@ -30,6 +31,7 @@ export interface IExternalContracts {
 
 export interface ITokenContracts {
   wCollateral: WrappedLendingCollateral;
+  erc20: MintableERC20;
   token: ICollateral;
 }
 
@@ -43,6 +45,7 @@ export type ICollateral = {
 
 export interface IParams {
   RPC_URL: string;
+  ONEZ: string;
   PYTH_ADDRESS: string;
   COLLATERALS: ICollateral[];
   ADMIN_ADDRESS: string;
