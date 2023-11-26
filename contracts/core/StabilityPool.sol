@@ -2,13 +2,12 @@
 
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../dependencies/PrismaOwnable.sol";
 import "../dependencies/SystemStart.sol";
 import "../dependencies/PrismaMath.sol";
 import "../interfaces/IDebtTokenOnezProxy.sol";
 import "../interfaces/IVault.sol";
+import "../interfaces/IWrappedLendingCollateral.sol";
 
 /**
     @title Prisma Stability Pool
@@ -19,8 +18,6 @@ import "../interfaces/IVault.sol";
             the stability pool may be used to liquidate any supported collateral type.
  */
 contract StabilityPool is PrismaOwnable, SystemStart {
-    using SafeERC20 for IERC20;
-
     uint256 public constant DECIMAL_PRECISION = 1e18;
     uint128 public constant SUNSET_DURATION = 180 days;
     uint256 constant REWARD_DURATION = 1 weeks;
@@ -36,8 +33,9 @@ contract StabilityPool is PrismaOwnable, SystemStart {
     uint32 public lastUpdate;
     uint32 public periodFinish;
 
-    mapping(IERC20 collateral => uint256 index) public indexByCollateral;
-    IERC20[] public collateralTokens;
+    mapping(IWrappedLendingCollateral collateral => uint256 index)
+        public indexByCollateral;
+    IWrappedLendingCollateral[] public collateralTokens;
 
     // Tracker for Debt held in the pool. Changes when users deposit/withdraw, and when Trove debt is offset.
     uint256 internal totalDebtTokenDeposits;
@@ -140,7 +138,10 @@ contract StabilityPool is PrismaOwnable, SystemStart {
         address indexed _depositor,
         uint256[] _collateral
     );
-    event CollateralOverwritten(IERC20 oldCollateral, IERC20 newCollateral);
+    event CollateralOverwritten(
+        IWrappedLendingCollateral oldCollateral,
+        IWrappedLendingCollateral newCollateral
+    );
 
     event RewardClaimed(
         address indexed account,
@@ -162,10 +163,13 @@ contract StabilityPool is PrismaOwnable, SystemStart {
         periodFinish = uint32(block.timestamp - 1);
 
         // give max approval to the proxy to allow burn and transfers
-        debtToken.underlying().approve(_debtTokenAddress, type(uint256).max);
+        debtToken.underlying().approve(
+            address(_debtTokenAddress),
+            type(uint256).max
+        );
     }
 
-    function enableCollateral(IERC20 _collateral) external {
+    function enableCollateral(IWrappedLendingCollateral _collateral) external {
         require(msg.sender == factory, "Not factory");
         uint256 length = collateralTokens.length;
         bool collateralEnabled;
@@ -200,7 +204,10 @@ contract StabilityPool is PrismaOwnable, SystemStart {
         }
     }
 
-    function _overwriteCollateral(IERC20 _newCollateral, uint256 idx) internal {
+    function _overwriteCollateral(
+        IWrappedLendingCollateral _newCollateral,
+        uint256 idx
+    ) internal {
         require(
             indexByCollateral[_newCollateral] == 0,
             "Collateral must be sunset"
@@ -233,7 +240,9 @@ contract StabilityPool is PrismaOwnable, SystemStart {
         @param collateral Collateral to sunset
 
      */
-    function startCollateralSunset(IERC20 collateral) external onlyOwner {
+    function startCollateralSunset(
+        IWrappedLendingCollateral collateral
+    ) external onlyOwner {
         require(
             indexByCollateral[collateral] > 0,
             "Collateral already sunsetting"
@@ -428,7 +437,7 @@ contract StabilityPool is PrismaOwnable, SystemStart {
      * Cancels out the specified debt against the Debt contained in the Stability Pool (as far as possible)
      */
     function offset(
-        IERC20 collateral,
+        IWrappedLendingCollateral collateral,
         uint256 _debtToOffset,
         uint256 _collToAdd
     ) external virtual {
@@ -436,7 +445,7 @@ contract StabilityPool is PrismaOwnable, SystemStart {
     }
 
     function _offset(
-        IERC20 collateral,
+        IWrappedLendingCollateral collateral,
         uint256 _debtToOffset,
         uint256 _collToAdd
     ) internal {
@@ -857,10 +866,7 @@ contract StabilityPool is PrismaOwnable, SystemStart {
             if (gains > 0) {
                 collateralGains[collateralIndex] = gains;
                 depositorGains[collateralIndex] = 0;
-                collateralTokens[collateralIndex].safeTransfer(
-                    recipient,
-                    gains
-                );
+                collateralTokens[collateralIndex].burn(recipient, gains);
             }
             unchecked {
                 ++i;

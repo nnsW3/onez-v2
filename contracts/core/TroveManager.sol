@@ -2,18 +2,17 @@
 
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
-import "../interfaces/IBorrowerOperations.sol";
-import "../interfaces/IDebtTokenOnezProxy.sol";
-import "../interfaces/ISortedTroves.sol";
-import "../interfaces/IVault.sol";
-import "../interfaces/IPriceFeed.sol";
-import "../dependencies/SystemStart.sol";
 import "../dependencies/PrismaBase.sol";
 import "../dependencies/PrismaMath.sol";
 import "../dependencies/PrismaOwnable.sol";
+import "../dependencies/SystemStart.sol";
+import "../interfaces/IBorrowerOperations.sol";
+import "../interfaces/IDebtTokenOnezProxy.sol";
+import "../interfaces/IPriceFeed.sol";
+import "../interfaces/ISortedTroves.sol";
+import "../interfaces/IVault.sol";
+import "../interfaces/IWrappedLendingCollateral.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
     @title Prisma Trove Manager
@@ -28,8 +27,6 @@ import "../dependencies/PrismaOwnable.sol";
             necessary to avoid the restriction on deployed bytecode size.
  */
 contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
-    using SafeERC20 for IERC20;
-
     // --- Connected contract declarations ---
 
     address public immutable borrowerOperationsAddress;
@@ -39,7 +36,7 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
     IPrismaVault public immutable vault;
 
     IPriceFeed public priceFeed;
-    IERC20 public collateralToken;
+    IWrappedLendingCollateral public collateralToken;
 
     // A doubly linked list of Troves, sorted by their collateral ratios
     ISortedTroves public sortedTroves;
@@ -275,7 +272,7 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
         require(address(sortedTroves) == address(0));
         priceFeed = IPriceFeed(_priceFeedAddress);
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
-        collateralToken = IERC20(_collateralToken);
+        collateralToken = IWrappedLendingCollateral(_collateralToken);
 
         systemDeploymentTime = block.timestamp;
         sunsetting = false;
@@ -1029,10 +1026,8 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
     function claimCollateral(address _receiver) external {
         uint256 claimableColl = surplusBalances[msg.sender];
         require(claimableColl > 0, "No collateral available to claim");
-
         surplusBalances[msg.sender] = 0;
-
-        collateralToken.safeTransfer(_receiver, claimableColl);
+        collateralToken.burn(_receiver, claimableColl);
     }
 
     // --- Reward Claim functions ---
@@ -1646,8 +1641,7 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
         if (_amount > 0) {
             totalActiveCollateral = totalActiveCollateral - _amount;
             emit CollateralSent(_account, _amount);
-
-            collateralToken.safeTransfer(_account, _amount);
+            collateralToken.burn(_account, _amount);
         }
     }
 

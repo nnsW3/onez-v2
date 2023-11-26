@@ -2,8 +2,7 @@
 
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../interfaces/IWrappedLendingCollateral.sol";
 import "../interfaces/ITroveManager.sol";
 import "../interfaces/IDebtTokenOnezProxy.sol";
 import "../dependencies/PrismaBase.sol";
@@ -20,8 +19,6 @@ import "../dependencies/DelegatedOps.sol";
             relationship between `BorrowerOperations` and each `TroveManager` / `SortedTroves` pair.
  */
 contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
-    using SafeERC20 for IERC20;
-
     IDebtTokenOnezProxy public immutable debtToken;
     address public immutable factory;
     uint256 public minNetDebt;
@@ -30,7 +27,7 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
     ITroveManager[] internal _troveManagers;
 
     struct TroveManagerData {
-        IERC20 collateralToken;
+        IWrappedLendingCollateral collateralToken;
         uint16 index;
     }
 
@@ -77,12 +74,12 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
 
     event BorrowingFeePaid(
         address indexed borrower,
-        IERC20 collateralToken,
+        IWrappedLendingCollateral collateralToken,
         uint256 amount
     );
     event CollateralConfigured(
         ITroveManager troveManager,
-        IERC20 collateralToken
+        IWrappedLendingCollateral collateralToken
     );
     event TroveManagerRemoved(ITroveManager troveManager);
 
@@ -112,7 +109,7 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
 
     function configureCollateral(
         ITroveManager troveManager,
-        IERC20 collateralToken
+        IWrappedLendingCollateral collateralToken
     ) external {
         require(msg.sender == factory, "!factory");
         troveManagersData[troveManager] = TroveManagerData(
@@ -200,7 +197,7 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
         address _lowerHint
     ) external callerOrDelegated(account) {
         require(!PRISMA_CORE.paused(), "Deposits are paused");
-        IERC20 collateralToken;
+        IWrappedLendingCollateral collateralToken;
         LocalVariables_openTrove memory vars;
         bool isRecoveryMode;
         (
@@ -267,7 +264,8 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
         );
 
         // Move the collateral to the Trove Manager
-        collateralToken.safeTransferFrom(
+        // make the user deposit into the lending pool and send to the tm
+        collateralToken.mintPrivileged(
             msg.sender,
             address(troveManager),
             _collateralAmount
@@ -412,7 +410,7 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
             "BorrowerOps: There must be either a collateral change or a debt change"
         );
 
-        IERC20 collateralToken;
+        IWrappedLendingCollateral collateralToken;
         LocalVariables_adjustTrove memory vars;
         bool isRecoveryMode;
         (
@@ -472,7 +470,8 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
 
         // If we are incrasing collateral, send tokens to the trove manager prior to adjusting the trove
         if (vars.isCollIncrease)
-            collateralToken.safeTransferFrom(
+            // make the user deposit into the lending pool and send the tokens to the tm
+            collateralToken.mintPrivileged(
                 msg.sender,
                 address(troveManager),
                 vars.collChange
@@ -497,7 +496,7 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
         ITroveManager troveManager,
         address account
     ) external callerOrDelegated(account) {
-        IERC20 collateralToken;
+        IWrappedLendingCollateral collateralToken;
 
         uint256 price;
         bool isRecoveryMode;
@@ -542,7 +541,7 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
 
     function _triggerBorrowingFee(
         ITroveManager _troveManager,
-        IERC20 collateralToken,
+        IWrappedLendingCollateral collateralToken,
         address _caller,
         uint256 _maxFeePercentage,
         uint256 _debtAmount
@@ -772,7 +771,7 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
     )
         internal
         returns (
-            IERC20 collateralToken,
+            IWrappedLendingCollateral collateralToken,
             uint256 price,
             uint256 totalPricedCollateral,
             uint256 totalDebt,
