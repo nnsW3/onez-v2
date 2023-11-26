@@ -262,6 +262,9 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
         borrowerOperationsAddress = _borrowerOperationsAddress;
         vault = IPrismaVault(_vault);
         liquidationManager = _liquidationManager;
+
+        // give max approval to the proxy to allow burn and transfers
+        debtToken.underlying().approve(_debtTokenAddress, type(uint256).max);
     }
 
     function setAddresses(

@@ -160,6 +160,9 @@ contract StabilityPool is PrismaOwnable, SystemStart {
         factory = _factory;
         liquidationManager = _liquidationManager;
         periodFinish = uint32(block.timestamp - 1);
+
+        // give max approval to the proxy to allow burn and transfers
+        debtToken.underlying().approve(_debtTokenAddress, type(uint256).max);
     }
 
     function enableCollateral(IERC20 _collateral) external {

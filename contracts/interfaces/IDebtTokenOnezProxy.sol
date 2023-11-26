@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 interface IDebtTokenOnezProxy {
     function burn(address _account, uint256 _amount) external;
 
@@ -30,6 +32,8 @@ interface IDebtTokenOnezProxy {
     function DEBT_GAS_COMPENSATION() external view returns (uint256);
 
     function balanceOf(address account) external view returns (uint256);
+
+    function underlying() external view returns (IERC20);
 
     function borrowerOperationsAddress() external view returns (address);
 

@@ -52,6 +52,10 @@ contract DebtTokenOnezProxy is IDebtTokenOnezProxy {
         return onez.balanceOf(account);
     }
 
+    function underlying() external view returns (IERC20) {
+        return IERC20(onez);
+    }
+
     // --- Functions for intra-Prisma calls ---
 
     function mintWithGasCompensation(
