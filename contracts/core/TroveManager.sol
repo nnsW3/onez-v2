@@ -259,7 +259,11 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
         address _priceFeedAddress,
         address _sortedTrovesAddress,
         address _collateralToken
-    ) external onlyOwner {
+    ) external {
+        require(
+            msg.sender == owner() || gasPoolAddress == address(0),
+            "not owner or already set"
+        );
         gasPoolAddress = _gasPoolAddress;
         debtToken = IDebtTokenOnezProxy(_debtTokenAddress);
         borrowerOperationsAddress = _borrowerOperationsAddress;

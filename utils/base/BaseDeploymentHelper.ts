@@ -40,8 +40,8 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     const wallet = await this.getEthersSigner();
     const balBefore = formatEther(await wallet.getBalance());
 
-    console.log(`Deployer is: ${await wallet.getAddress()}`);
-    console.log(`Deployer ETH balance before: ${balBefore}`);
+    this.log(`Deployer is: ${await wallet.getAddress()}`);
+    this.log(`Deployer ETH balance before: ${balBefore}`);
 
     this.config.ADMIN_ADDRESS = await wallet.getAddress();
     this.config.DEPLOYER_ADDRESS = await wallet.getAddress();
@@ -68,7 +68,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
   private async deployCore(
     external: IExternalContracts
   ): Promise<ICoreContracts> {
-    console.log(`------ Deploying core contracts ------`);
+    this.log(`------ Deploying core contracts ------`);
     const gasCompenstaion = this.config.GAS_COMPENSATION;
 
     const prismaCore = await this.deployContract<PrismaCore>("PrismaCore");
@@ -137,7 +137,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
   }
 
   private async deployGov(core: ICoreContracts): Promise<IGovContracts> {
-    console.log(`------ Deploying DAO contracts ------`);
+    this.log(`------ Deploying DAO contracts ------`);
 
     const feeReceiver = await this.deployContract<FeeReceiver>("FeeReceiver", [
       core.prismaCore.address,
@@ -170,7 +170,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
   }
 
   private async connectContracts(core: ICoreContracts, gov: IGovContracts) {
-    console.log(`------ Connecting contracts ------`);
+    this.log(`------ Connecting contracts ------`);
 
     const gasCompenstaion = this.config.GAS_COMPENSATION;
 
@@ -266,7 +266,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
       )
     );
 
-    console.log(`------ Contracts Connected ------`);
+    this.log(`------ Contracts Connected ------`);
   }
 
   private async addCollateral(
@@ -275,7 +275,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     external: IExternalContracts,
     token: ICollateral
   ) {
-    console.log(`------ Adding collateral ${token.symbol} ------`);
+    this.log(`------ Adding collateral ${token.symbol} ------`);
 
     const wrappedLendingCollateral = await this.deployContract<TroveManager>(
       "WrappedLendingCollateral",
@@ -306,7 +306,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
       )
     );
 
-    console.log(`------ Collateral Added ------`);
+    this.log(`------ Collateral Added ------`);
     return {
       wrappedLendingCollateral,
     };
@@ -346,7 +346,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
       const token = this.config.COLLATERALS[index];
       if (token.address !== ZERO_ADDRESS) continue;
 
-      console.log(`- Deploying mock token for ${token.symbol}`);
+      this.log(`- Deploying mock token for ${token.symbol}`);
 
       const instance = await this.deployContract<MintableERC20>(
         `MintableERC20`,
