@@ -308,6 +308,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
           token.symbol,
           external.lendingPool.address,
           token.address,
+          core.borrowerOperations.address,
         ]
       );
 

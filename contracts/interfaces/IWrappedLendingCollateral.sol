@@ -2,17 +2,22 @@
 
 pragma solidity 0.8.19;
 
+import "./IWETH.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./ILendingPool.sol";
 
 interface IWrappedLendingCollateral {
-    function mint(uint256 amount) external;
+    function mint(uint256 amount) external payable;
 
     function aToken() external view returns (IERC20);
 
-    function mintPrivileged(address from, address to, uint256 amount) external;
+    function mintPrivileged(
+        address from,
+        address to,
+        uint256 amount
+    ) external payable;
 
-    function underlying() external view returns (IERC20);
+    function underlying() external view returns (IWETH);
 
     function pool() external view returns (ILendingPool);
 

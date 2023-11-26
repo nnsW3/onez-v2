@@ -208,8 +208,9 @@ contract BorrowerOperations is
         uint256 _debtAmount,
         address _upperHint,
         address _lowerHint
-    ) external callerOrDelegated(account) {
+    ) external payable callerOrDelegated(account) {
         require(!PRISMA_CORE.paused(), "Deposits are paused");
+
         IWrappedLendingCollateral collateralToken;
         LocalVariables_openTrove memory vars;
         bool isRecoveryMode;
@@ -278,7 +279,7 @@ contract BorrowerOperations is
 
         // Move the collateral to the Trove Manager
         // make the user deposit into the lending pool and send to the tm
-        collateralToken.mintPrivileged(
+        collateralToken.mintPrivileged{value: msg.value}(
             msg.sender,
             address(troveManager),
             _collateralAmount

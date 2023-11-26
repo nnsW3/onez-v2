@@ -68,7 +68,7 @@ describe("Basic Functionalities", function () {
     expect(await weth.balanceOf(deployer.address)).to.equal(e18.mul(1001));
   });
 
-  it.only("Should open a trove with ETH collateral", async function () {
+  it("Should open a trove with ETH collateral as WETH", async function () {
     const bo = core.borrowerOperations;
 
     await collaterals[0].erc20
@@ -85,6 +85,25 @@ describe("Basic Functionalities", function () {
         e18.mul(200),
         ZERO_ADDRESS,
         ZERO_ADDRESS
+      );
+
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(200));
+  });
+
+  it("Should open a trove with ETH collateral as msg.value", async function () {
+    const bo = core.borrowerOperations;
+
+    await bo
+      .connect(deployer)
+      .openTrove(
+        core.factory.troveManagers(0),
+        deployer.address,
+        e18,
+        e18,
+        e18.mul(200),
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        { value: e18 }
       );
 
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(200));
