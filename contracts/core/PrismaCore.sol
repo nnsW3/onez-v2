@@ -30,7 +30,7 @@ contract PrismaCore is Initializable {
     // System-wide pause. When true, disables trove adjustments across all collaterals.
     bool public paused;
 
-    // System-wide start time, rounded down the nearest epoch week.
+    // System-wide start time, rounded down the nearest epoch day.
     // Other contracts that require access to this should inherit `SystemStart`.
     uint256 public startTime;
 
@@ -61,7 +61,7 @@ contract PrismaCore is Initializable {
         address _feeReceiver
     ) external initializer {
         owner = _owner;
-        startTime = (block.timestamp / 1 weeks) * 1 weeks;
+        startTime = (block.timestamp / 1 days) * 1 days;
         guardian = _guardian;
         priceFeed = _priceFeed;
         feeReceiver = _feeReceiver;

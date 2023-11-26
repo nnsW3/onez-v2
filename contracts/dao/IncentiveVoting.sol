@@ -5,6 +5,7 @@ pragma solidity 0.8.19;
 import "../dependencies/DelegatedOps.sol";
 import "../dependencies/SystemStart.sol";
 import "../interfaces/ITokenLocker.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /**
     @title Prisma Incentive Voting
@@ -14,12 +15,12 @@ import "../interfaces/ITokenLocker.sol";
 
             Conceptually, incentive voting functions similarly to Curve's gauge weight voting.
  */
-contract IncentiveVoting is DelegatedOps, SystemStart {
+contract IncentiveVoting is Initializable, DelegatedOps, SystemStart {
     uint256 public constant MAX_POINTS = 10000; // must be less than 2**16 or things will break
     uint256 public constant MAX_LOCK_WEEKS = 52; // must be the same as `MultiLocker`
 
-    ITokenLocker public immutable tokenLocker;
-    address public immutable vault;
+    ITokenLocker public tokenLocker;
+    address public vault;
 
     struct AccountData {
         // system week when the account's lock weights were registered
@@ -93,6 +94,14 @@ contract IncentiveVoting is DelegatedOps, SystemStart {
         ITokenLocker _tokenLocker,
         address _vault
     ) SystemStart(_prismaCore) {
+        tokenLocker = _tokenLocker;
+        vault = _vault;
+    }
+
+    function initialize(
+        ITokenLocker _tokenLocker,
+        address _vault
+    ) external initializer {
         tokenLocker = _tokenLocker;
         vault = _vault;
     }

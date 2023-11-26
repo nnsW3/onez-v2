@@ -1,3 +1,4 @@
+import { ZERO_ADDRESS } from "../../utils/base/BaseHelper";
 import { IParams } from "../../utils/interfaces";
 
 const params: IParams = {
@@ -21,6 +22,7 @@ const params: IParams = {
       capacityE18: "10000000000000000000000000", // 100 mil mint
     },
   ],
+  LAYERZERO_ENDPOINT: ZERO_ADDRESS,
   ADMIN_ADDRESS: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
   DEPLOYER_ADDRESS: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
   OUTPUT_FILE: "./output/zksync-fork.json",

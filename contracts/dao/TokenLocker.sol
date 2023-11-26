@@ -7,6 +7,7 @@ import "../dependencies/SystemStart.sol";
 import "../interfaces/IPrismaCore.sol";
 import "../interfaces/IIncentiveVoting.sol";
 import "../interfaces/IPrismaToken.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /**
     @title Prisma Token Locker
@@ -14,7 +15,7 @@ import "../interfaces/IPrismaToken.sol";
             which is used within `AdminVoting` and `IncentiveVoting` to vote on
             core protocol operations.
  */
-contract TokenLocker is PrismaOwnable, SystemStart {
+contract TokenLocker is Initializable, PrismaOwnable, SystemStart {
     // The maximum number of weeks that tokens may be locked for. Also determines the maximum
     // number of active locks that a single account may open. Weight is calculated as:
     // `[balance] * [weeks to unlock]`. Weights are stored as `uint40` and balances as `uint32`,
@@ -28,12 +29,12 @@ contract TokenLocker is PrismaOwnable, SystemStart {
     // `lockToken.totalSupply() <= type(uint32).max * lockToTokenRatio`
     //
     // cannot be violated or the system could break due to overflow.
-    uint256 public immutable lockToTokenRatio;
+    uint256 public lockToTokenRatio;
 
-    IPrismaToken public immutable lockToken;
-    IIncentiveVoting public immutable incentiveVoter;
+    IPrismaToken public lockToken;
+    IIncentiveVoting public incentiveVoter;
     IPrismaCore public immutable prismaCore;
-    address public immutable deploymentManager;
+    address public deploymentManager;
 
     bool public penaltyWithdrawalsEnabled;
     uint256 public allowPenaltyWithdrawAfter;
@@ -107,15 +108,19 @@ contract TokenLocker is PrismaOwnable, SystemStart {
     );
 
     constructor(
-        address _prismaCore,
+        address _prismaCore
+    ) SystemStart(_prismaCore) PrismaOwnable(_prismaCore) {
+        prismaCore = IPrismaCore(_prismaCore);
+    }
+
+    function initialize(
         IPrismaToken _token,
         IIncentiveVoting _voter,
         address _manager,
         uint256 _lockToTokenRatio
-    ) SystemStart(_prismaCore) PrismaOwnable(_prismaCore) {
+    ) external initializer {
         lockToken = _token;
         incentiveVoter = _voter;
-        prismaCore = IPrismaCore(_prismaCore);
         deploymentManager = _manager;
         lockToTokenRatio = _lockToTokenRatio;
     }

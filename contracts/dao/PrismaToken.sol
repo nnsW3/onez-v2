@@ -4,16 +4,17 @@ pragma solidity 0.8.19;
 
 import "../interfaces/IERC2612.sol";
 import {OFTV2, IERC20, ERC20} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/OFTV2.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /**
     @title Prisma Governance Token
     @notice Given as an incentive for users of the protocol. Can be locked in `TokenLocker`
             to receive lock weight, which gives governance power within the Prisma DAO.
  */
-contract PrismaToken is OFTV2, IERC2612 {
+contract PrismaToken is Initializable, OFTV2, IERC2612 {
     // --- ERC20 Data ---
 
-    string internal constant _NAME = "NULLZ Incentive Token";
+    string internal constant _NAME = "NULLZ Token";
     string internal constant _SYMBOL = "NULLZ";
     string public constant version = "1";
 
@@ -34,8 +35,8 @@ contract PrismaToken is OFTV2, IERC2612 {
     bytes32 private immutable _HASHED_NAME;
     bytes32 private immutable _HASHED_VERSION;
 
-    address public immutable locker;
-    address public immutable vault;
+    address public locker;
+    address public vault;
 
     uint256 public maxTotalSupply;
 
@@ -44,9 +45,7 @@ contract PrismaToken is OFTV2, IERC2612 {
     // --- Functions ---
 
     constructor(
-        address _vault,
-        address _layerZeroEndpoint,
-        address _locker
+        address _layerZeroEndpoint
     ) OFTV2(_NAME, _SYMBOL, 6, _layerZeroEndpoint) {
         bytes32 hashedName = keccak256(bytes(_NAME));
         bytes32 hashedVersion = keccak256(bytes(version));
@@ -59,7 +58,9 @@ contract PrismaToken is OFTV2, IERC2612 {
             hashedName,
             hashedVersion
         );
+    }
 
+    function initialize(address _vault, address _locker) external initializer {
         locker = _locker;
         vault = _vault;
     }
@@ -71,6 +72,11 @@ contract PrismaToken is OFTV2, IERC2612 {
         _mint(vault, _totalSupply);
         maxTotalSupply = _totalSupply;
 
+        return true;
+    }
+
+    function burn(uint256 amount) external returns (bool) {
+        _burn(msg.sender, amount);
         return true;
     }
 

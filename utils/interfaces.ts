@@ -1,25 +1,19 @@
 import {
-  ActivePool,
   BorrowerOperations,
-  CollSurplusPool,
-  CommunityIssuance,
-  DefaultPool,
+  DebtTokenOnezProxy,
+  Factory,
   GasPool,
-  Governance,
-  HintHelpers,
-  ILendingPool,
-  MintableERC20,
-  MockLendingPool,
-  MockPyth,
+  LiquidationManager,
+  MultiCollateralHintHelpers,
   MultiTroveGetter,
-  NULLZ,
   ONEZ,
-  PriceFeed,
+  PriceFeedPyth,
+  PrismaCore,
   SortedTroves,
   StabilityPool,
   TroveManager,
-  TroveManagerTester,
-} from "../output/typechain";
+  TroveManagerGetters,
+} from "../typechain";
 
 export type ICollateral = {
   pythId: string;
@@ -38,6 +32,7 @@ export interface IParams {
   OUTPUT_FILE: string;
   GAS_PRICE: number;
   TX_CONFIRMATIONS: number;
+  LAYERZERO_ENDPOINT: string;
   LENDING_POOL_ADDRESS: string;
   ETHERSCAN_BASE_URL?: string;
   NETWORK_NAME: string;
@@ -53,30 +48,18 @@ export type IState = {
 };
 
 export interface ICoreContracts {
-  onez: ONEZ;
-  governance: Governance;
-  sortedTroves: SortedTroves;
+  prismaCore: PrismaCore;
+  factory: Factory;
   troveManager: TroveManager;
-  activePool: ActivePool;
-  stabilityPool: StabilityPool;
-  gasPool: GasPool;
-  defaultPool: DefaultPool;
-  collSurplusPool: CollSurplusPool;
   borrowerOperations: BorrowerOperations;
-  hintHelpers: HintHelpers;
+  debtTokenOnezProxy: DebtTokenOnezProxy;
+  onez: ONEZ;
+  gasPool: GasPool;
+  liquidationManager: LiquidationManager;
+  sortedTroves: SortedTroves;
+  stabilityPool: StabilityPool;
+  priceFeedPyth: PriceFeedPyth;
+  multiCollateralHintHelpers: MultiCollateralHintHelpers;
   multiTroveGetter: MultiTroveGetter;
-  priceFeed: PriceFeed;
-  lendingPool: ILendingPool;
+  troveManagerGetters: TroveManagerGetters;
 }
-
-export interface ICoreContractsTestnet extends ICoreContracts {
-  troveManager: TroveManagerTester;
-  lendingPool: MockLendingPool;
-  weth: MintableERC20;
-  pyth: MockPyth;
-}
-
-export type INullzContracts = {
-  nullz: NULLZ;
-  communityIssuance: CommunityIssuance;
-};

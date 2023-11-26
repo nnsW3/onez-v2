@@ -4,6 +4,8 @@ import { IParams, IState } from "../interfaces";
 import * as ethers from "ethers";
 import fs from "fs";
 
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 export default abstract class BaseHelper {
   hre: HardhatRuntimeEnvironment;
 

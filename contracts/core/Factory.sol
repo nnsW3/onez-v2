@@ -34,6 +34,11 @@ contract Factory is Initializable, PrismaOwnable {
 
     // commented values are suggested default parameters
     struct DeploymentParams {
+        address gasPoolAddress;
+        address debtTokenAddress;
+        address borrowerOperationsAddress;
+        address vault;
+        address liquidationManager;
         uint256 minuteDecayFactor; // 999037758833783000  (half life of 12 hours)
         uint256 redemptionFeeFloor; // 1e18 / 1000 * 5  (0.5%)
         uint256 maxRedemptionFee; // 1e18  (100%)
@@ -112,6 +117,11 @@ contract Factory is Initializable, PrismaOwnable {
         );
 
         ITroveManager(troveManager).setAddresses(
+            params.gasPoolAddress,
+            params.debtTokenAddress,
+            params.borrowerOperationsAddress,
+            params.vault,
+            params.liquidationManager,
             priceFeed,
             sortedTroves,
             collateral

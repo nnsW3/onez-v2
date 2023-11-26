@@ -1,3 +1,4 @@
+import { ZERO_ADDRESS } from "../../utils/base/BaseHelper";
 import { IParams } from "../../utils/interfaces";
 
 const params: IParams = {
@@ -21,6 +22,7 @@ const params: IParams = {
       capacityE18: "10000000000000000000000000", // 100 mil mint
     },
   ],
+  LAYERZERO_ENDPOINT: ZERO_ADDRESS,
   ADMIN_ADDRESS: "0xb76F765A785eCa438e1d95f594490088aFAF9acc",
   DEPLOYER_ADDRESS: "0xb76F765A785eCa438e1d95f594490088aFAF9acc",
   OUTPUT_FILE: "./output/zksync-goerli.json",

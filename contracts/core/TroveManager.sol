@@ -29,11 +29,11 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
     // --- Connected contract declarations ---
 
-    address public immutable borrowerOperationsAddress;
-    address public immutable liquidationManager;
-    address immutable gasPoolAddress;
-    IDebtTokenOnezProxy public immutable debtToken;
-    IPrismaVault public immutable vault;
+    address public borrowerOperationsAddress;
+    address public liquidationManager;
+    address gasPoolAddress;
+    IDebtTokenOnezProxy public debtToken;
+    IPrismaVault public vault;
 
     IPriceFeed public priceFeed;
     IWrappedLendingCollateral public collateralToken;
@@ -243,17 +243,25 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
 
     constructor(
         address _prismaCore,
-        address _gasPoolAddress,
-        address _debtTokenAddress,
-        address _borrowerOperationsAddress,
-        address _vault,
-        address _liquidationManager,
         uint256 _gasCompensation
     )
         PrismaOwnable(_prismaCore)
         PrismaBase(_gasCompensation)
         SystemStart(_prismaCore)
-    {
+    {}
+
+    function setAddresses(
+        address _gasPoolAddress,
+        address _debtTokenAddress,
+        address _borrowerOperationsAddress,
+        address _vault,
+        address _liquidationManager,
+        address _priceFeedAddress,
+        address _sortedTrovesAddress,
+        address _collateralToken
+    ) external {
+        require(address(sortedTroves) == address(0));
+
         gasPoolAddress = _gasPoolAddress;
         debtToken = IDebtTokenOnezProxy(_debtTokenAddress);
         borrowerOperationsAddress = _borrowerOperationsAddress;
@@ -262,14 +270,7 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
 
         // give max approval to the proxy to allow burn and transfers
         debtToken.underlying().approve(_debtTokenAddress, type(uint256).max);
-    }
 
-    function setAddresses(
-        address _priceFeedAddress,
-        address _sortedTrovesAddress,
-        address _collateralToken
-    ) external {
-        require(address(sortedTroves) == address(0));
         priceFeed = IPriceFeed(_priceFeedAddress);
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         collateralToken = IWrappedLendingCollateral(_collateralToken);
