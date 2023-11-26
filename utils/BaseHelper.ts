@@ -1,5 +1,5 @@
 import { Contract } from "ethers";
-import { Artifact, HardhatRuntimeEnvironment } from "hardhat/types";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { IParams, IState } from "./interfaces";
 import * as ethers from "ethers";
 import fs from "fs";
@@ -39,13 +39,13 @@ export default abstract class BaseHelper {
 
   // --- Deployer methods ---
 
-  abstract getFactory(name: string): Promise<Artifact>; // => await this.deployer.loadArtifact(name);
+  // abstract getFactory(name: string): Promise<ethers.ContractFactory>; // => await this.deployer.loadArtifact(name);
 
-  abstract sendAndWaitForTransaction(txPromise): Promise<void>;
+  abstract sendAndWaitForTransaction(
+    txPromise: ethers.ContractTransaction
+  ): Promise<void>;
 
-  abstract getEthersSigner(privateKey?: string): ethers.Wallet;
-
-  abstract getEthersProvider(): ethers.providers.BaseProvider;
+  abstract getEthersSigner(privateKey?: string): Promise<ethers.Signer>;
 
   abstract deployContract<T extends Contract>(
     factoryName: string,
@@ -53,23 +53,15 @@ export default abstract class BaseHelper {
     params?: any[]
   ): Promise<T>;
 
-  async getSavedContract<T extends Contract>(
-    factoryN: string,
-    prefix: string,
-    wallet?: ethers.ethers.Wallet
-  ) {
+  async getSavedContract<T extends Contract>(factoryN: string, prefix: string) {
     const id = `${prefix}${factoryN}`;
-    return await this.getContract<T>(this.state[id].address, factoryN, wallet);
+    return await this.getContract<T>(this.state[id].address, factoryN);
   }
 
-  async getContract<T extends Contract>(
+  abstract getContract<T extends Contract>(
     factoryN: string,
-    address: string,
-    wallet?: ethers.ethers.Wallet
-  ) {
-    const factory = await this.getFactory(factoryN);
-    return await this.loadContract<T>(address, factory.abi, wallet);
-  }
+    address: string
+  ): Promise<T>;
 
   // --- Verify on Ethrescan ---
 
@@ -93,7 +85,7 @@ export default abstract class BaseHelper {
         address: this.state[name].address,
         constructorArguments,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
       if (error.name != "NomicLabsHardhatPluginError") {
         console.error(`- Error verifying: ${error.name}`);
@@ -106,19 +98,5 @@ export default abstract class BaseHelper {
       name
     ].verification = `${this.config.ETHERSCAN_BASE_URL}/address/${this.state[name].address}#code`;
     this.saveDeployment(this.state);
-  }
-
-  // --- Helpers ---
-
-  protected async loadContract<T extends Contract>(
-    address: string,
-    abi: any[],
-    wallet?: ethers.ethers.Wallet
-  ) {
-    return new ethers.Contract(
-      address,
-      abi,
-      wallet || this.getEthersSigner()
-    ) as T;
   }
 }

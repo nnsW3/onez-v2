@@ -5,106 +5,178 @@ import bluebird from "bluebird";
 
 export default abstract class BaseDeploymentHelper extends BaseHelper {
   public async deploy(verify = false) {
-    const wallet = this.getEthersSigner();
+    const wallet = await this.getEthersSigner();
     const balBefore = formatEther(await wallet.getBalance());
     console.log(`Deployer ETH balance before: ${balBefore}`);
 
-    const result = await bluebird.mapSeries(
-      this.config.COLLATERALS,
-      async (token) => {
-        console.log();
+    const core = await this.deployCore();
 
-        const core = await this.deployLiquityCore(token);
-        await this.addONEZFacilitator(core, token);
+    // const result = await bluebird.mapSeries(
+    //   this.config.COLLATERALS,
+    //   async (token) => {
+    //     console.log();
 
-        console.log(
-          `------ Done deploying contracts for ${token.symbol} collateral ------`
-        );
+    //     const collateral = await this.deployCollateral(token);
 
-        // if (verify) await this.verifyContracts(token.symbol);
-        console.log();
+    //     console.log(
+    //       `------ Done deploying contracts for ${token.symbol} collateral ------`
+    //     );
 
-        return { core, token };
-      }
-    );
+    //     // if (verify) await this.verifyContracts(token.symbol);
+    //     console.log();
+
+    //     return { core: collateral, token };
+    //   }
+    // );
+
+    // await this.addONEZFacilitator(core);
 
     const balAfter = formatEther(await wallet.getBalance());
     console.log(`Deployer ETH balance after: ${balAfter}`);
-
-    return result;
   }
 
-  private async deployLiquityCore(token: ICollateral): Promise<ICoreContracts> {
+  private async deployCore(): Promise<any> {
+    console.log(`------ Deploying core contracts ------`);
+
+    const gasCompenstaion = 0;
+
+    // first check if there is a lending pool
+    // const lendingPool = await this.deployMockLendingPool(token);
+
+    const prismaCore = await this.deployContract("PrismaCore");
+    const factory = await this.deployContract("Factory", undefined, [
+      prismaCore.address,
+    ]);
+    const borrowerOperations = await this.deployContract(
+      "BorrowerOperations",
+      undefined,
+      [prismaCore.address, gasCompenstaion]
+    );
+    const debtTokenOnezProxy = await this.deployContract("DebtTokenOnezProxy");
+    const onez = await this.deployContract("ONEZ");
+    const gasPool = await this.deployContract("GasPool");
+    const liquidationManager = await this.deployContract(
+      "LiquidationManager",
+      undefined,
+      [gasCompenstaion]
+    );
+
+    // const activePool = await this.deployContract("ActivePool", symbol);
+    // const borrowerOperations = await this.deployContract(
+    //   "BorrowerOperations",
+    //   symbol
+    // );
+    // const collSurplusPool = await this.deployContract(
+    //   "CollSurplusPool",
+    //   symbol
+    // );
+    // const defaultPool = await this.deployContract("DefaultPool", symbol);
+    // const gasPool = await this.deployContract("GasPool", symbol);
+    // const governance = await this.deployContract("Governance", symbol);
+    // const hintHelpers = await this.deployContract("HintHelpers", symbol);
+    // const multiTroveGetter = await this.deployContract(
+    //   "MultiTroveGetter",
+    //   symbol
+    // );
+    // const onez = await this.deployContract(`ONEZ`);
+    // const priceFeed = await this.deployContract("PriceFeed", symbol);
+    // const sortedTroves = await this.deployContract("SortedTroves", symbol);
+    // const stabilityPool = await this.deployContract("StabilityPool", symbol);
+    // const troveManager = await this.deployContract("TroveManager", symbol);
+
+    // console.log(`- Done deploying ONEZ contracts`);
+
+    // return {
+    //   onez,
+    //   governance,
+    //   // lendingPool,
+    //   sortedTroves,
+    //   troveManager,
+    //   activePool,
+    //   stabilityPool,
+    //   gasPool,
+    //   defaultPool,
+    //   collSurplusPool,
+    //   borrowerOperations,
+    //   hintHelpers,
+    //   multiTroveGetter,
+    //   priceFeed,
+    // };
+  }
+
+  private async deployCollateral(token: ICollateral): Promise<any> {
     const symbol = token.symbol;
     console.log(`------ Deploying contracts for ${symbol} collateral ------`);
 
     // first check if there is a lending pool
-    const lendingPool = await this.deployMockLendingPool(token);
+    // const lendingPool = await this.deployMockLendingPool(token);
 
-    const activePool = await this.deployContract("ActivePool", symbol);
-    const borrowerOperations = await this.deployContract(
-      "BorrowerOperations",
-      symbol
-    );
-    const collSurplusPool = await this.deployContract(
-      "CollSurplusPool",
-      symbol
-    );
-    const defaultPool = await this.deployContract("DefaultPool", symbol);
-    const gasPool = await this.deployContract("GasPool", symbol);
-    const governance = await this.deployContract("Governance", symbol);
-    const hintHelpers = await this.deployContract("HintHelpers", symbol);
-    const multiTroveGetter = await this.deployContract(
-      "MultiTroveGetter",
-      symbol
-    );
-    const onez = await this.deployContract(`ONEZ`);
-    const priceFeed = await this.deployContract("PriceFeed", symbol);
-    const sortedTroves = await this.deployContract("SortedTroves", symbol);
-    const stabilityPool = await this.deployContract("StabilityPool", symbol);
-    const troveManager = await this.deployContract("TroveManager", symbol);
+    const prismaCore = await this.deployContract("PrimsaCore");
 
-    console.log(`- Done deploying ONEZ contracts`);
+    // const activePool = await this.deployContract("ActivePool", symbol);
+    // const borrowerOperations = await this.deployContract(
+    //   "BorrowerOperations",
+    //   symbol
+    // );
+    // const collSurplusPool = await this.deployContract(
+    //   "CollSurplusPool",
+    //   symbol
+    // );
+    // const defaultPool = await this.deployContract("DefaultPool", symbol);
+    // const gasPool = await this.deployContract("GasPool", symbol);
+    // const governance = await this.deployContract("Governance", symbol);
+    // const hintHelpers = await this.deployContract("HintHelpers", symbol);
+    // const multiTroveGetter = await this.deployContract(
+    //   "MultiTroveGetter",
+    //   symbol
+    // );
+    // const onez = await this.deployContract(`ONEZ`);
+    // const priceFeed = await this.deployContract("PriceFeed", symbol);
+    // const sortedTroves = await this.deployContract("SortedTroves", symbol);
+    // const stabilityPool = await this.deployContract("StabilityPool", symbol);
+    // const troveManager = await this.deployContract("TroveManager", symbol);
 
-    return {
-      onez,
-      governance,
-      lendingPool,
-      sortedTroves,
-      troveManager,
-      activePool,
-      stabilityPool,
-      gasPool,
-      defaultPool,
-      collSurplusPool,
-      borrowerOperations,
-      hintHelpers,
-      multiTroveGetter,
-      priceFeed,
-    };
+    // console.log(`- Done deploying ONEZ contracts`);
+
+    // return {
+    //   onez,
+    //   governance,
+    //   // lendingPool,
+    //   sortedTroves,
+    //   troveManager,
+    //   activePool,
+    //   stabilityPool,
+    //   gasPool,
+    //   defaultPool,
+    //   collSurplusPool,
+    //   borrowerOperations,
+    //   hintHelpers,
+    //   multiTroveGetter,
+    //   priceFeed,
+    // };
   }
 
-  private async deployMockLendingPool(
-    token: ICollateral
-  ): Promise<ILendingPool> {
-    if (this.config.LENDING_POOL_ADDRESS !== "") {
-      const factory = await this.getFactory("ILendingPool");
-      const lendingPool = await this.loadContract<ILendingPool>(
-        this.config.LENDING_POOL_ADDRESS,
-        factory.abi
-      );
-      return lendingPool;
-    }
-    console.log(`- Deploying mock lending pool`);
+  // private async deployMockLendingPool(
+  //   token: ICollateral
+  // ): Promise<ILendingPool> {
+  //   if (this.config.LENDING_POOL_ADDRESS !== "") {
+  //     const factory = await this.getFactory("ILendingPool");
+  //     const lendingPool = await this.loadContract<ILendingPool>(
+  //       this.config.LENDING_POOL_ADDRESS,
+  //       factory.abi
+  //     );
+  //     return lendingPool;
+  //   }
+  //   console.log(`- Deploying mock lending pool`);
 
-    // if we don't have a lending pool, then make a mock one
-    const pool = await this.deployContract(`MockLendingPool`);
+  //   // if we don't have a lending pool, then make a mock one
+  //   const pool = await this.deployContract(`MockLendingPool`);
 
-    console.log(`- Initializing reserve for ${token.symbol}`);
-    await this.sendAndWaitForTransaction(pool.initReserve(token.address));
-    console.log(`- Done initializing reserves for ${token.symbol}`);
-    return pool;
-  }
+  //   console.log(`- Initializing reserve for ${token.symbol}`);
+  //   await this.sendAndWaitForTransaction(pool.initReserve(token.address));
+  //   console.log(`- Done initializing reserves for ${token.symbol}`);
+  //   return pool;
+  // }
 
   private async addONEZFacilitator(core: ICoreContracts, token: ICollateral) {
     console.log(`- Adding ONEZ facilitator ${token.symbol}`);

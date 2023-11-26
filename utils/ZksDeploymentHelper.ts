@@ -1,30 +1,57 @@
 import { Contract } from "ethers";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
-import { Provider } from "zksync-web3";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { IParams } from "./interfaces";
+import { Provider, Wallet } from "zksync-web3";
+import { ZkSyncArtifact } from "@matterlabs/hardhat-zksync-deploy/dist/types";
 import * as ethers from "ethers";
 import BaseDeploymentHelper from "./BaseDeploymentHelper";
 
 export default class ZksDeploymentHelper extends BaseDeploymentHelper {
   deployer: Deployer;
+  wallet: Wallet;
 
-  async getFactory(name: string) {
+  constructor(
+    privateKey: string,
+    configParams: IParams,
+    hre: HardhatRuntimeEnvironment,
+    skipSave: boolean = false
+  ) {
+    super(configParams, hre, skipSave);
+    this.wallet = new Wallet(privateKey);
+    this.deployer = new Deployer(hre, this.wallet);
+  }
+
+  async getFactory(name: string): Promise<ZkSyncArtifact> {
     return await this.deployer.loadArtifact(name);
   }
 
-  async sendAndWaitForTransaction(txPromise) {
+  async sendAndWaitForTransaction(txPromise: ethers.ContractTransaction) {
     const tx = await txPromise;
-    if (this.config.TX_CONFIRMATIONS === 0) return tx.hash;
-    return await this.deployer.ethWallet.provider.waitForTransaction(
+    if (this.config.TX_CONFIRMATIONS === 0) return;
+    await this.deployer.ethWallet.provider.waitForTransaction(
       tx.hash,
       this.config.TX_CONFIRMATIONS
     );
   }
 
-  getEthersSigner = (privateKey?: string) =>
-    new ethers.Wallet(
+  getEthersSigner = async (privateKey?: string): Promise<ethers.Signer> =>
+    await new ethers.Wallet(
       privateKey || this.deployer.ethWallet.privateKey,
       this.getEthersProvider()
     );
+
+  getContract = async <T extends Contract>(
+    factoryN: string,
+    address: string
+  ) => {
+    const factory = await this.getFactory(factoryN);
+    return new ethers.Contract(
+      address,
+      factory.abi,
+      await this.getEthersSigner()
+    ) as T;
+  };
 
   getEthersProvider = () => new Provider(this.config.RPC_URL);
 
@@ -33,18 +60,17 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
     prefix = "",
     params: any[] = []
   ): Promise<T> {
-    const factory = await this.getFactory(factoryName);
-
     const name = `${prefix}${factoryName}`;
 
     if (this.state[name] && this.state[name].address) {
       console.log(
         `- Using previously deployed ${name} contract at address ${this.state[name].address}`
       );
-      return this.loadContract<T>(this.state[name].address, factory.abi);
+      return this.getContract<T>(this.state[name].address, factoryName);
     }
 
     console.log(`- Deploying ${name}`);
+    const factory = await this.getFactory(factoryName);
     const contract = (await this.deployer.deploy(factory, params, {
       gasPrice: this.config.GAS_PRICE,
     })) as T;
@@ -67,8 +93,5 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
 
     this.saveDeployment(this.state);
     return contract;
-    // return proxyImplementationFactory
-    //   ? this._loadContract(contract.address, proxyImplementationFactory.abi)
-    //   : contract;
   }
 }

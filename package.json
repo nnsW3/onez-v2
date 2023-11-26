@@ -5,7 +5,7 @@
   "author": "ZeroLend",
   "license": "MIT",
   "scripts": {
-    "hardhat:run": "hardhat run",
+    "hardhat:local:run": "hardhat --config hardhat.config.ts run",
     "deploy-zk": "hardhat --config hardhat.config.zksync.ts deploy-zksync --script deploy.ts",
     "compile": "hardhat compile",
     "compile-zk": "hardhat --config hardhat.config.zksync.ts compile",
@@ -30,6 +30,7 @@
     "@pythnetwork/pyth-sdk-solidity": "^2.3.0",
     "@typechain/ethers-v5": "^10.2.0",
     "@typechain/hardhat": "^6.1.5",
+    "@types/bluebird": "^3.5.42",
     "@types/chai": "^4.3.4",
     "@types/mocha": "^10.0.1",
     "bluebird": "^3.7.2",

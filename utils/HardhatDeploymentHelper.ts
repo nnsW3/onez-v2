@@ -1,51 +1,54 @@
-import { Contract } from "ethers";
+import { Contract, ContractFactory, ContractTransaction } from "ethers";
 import BaseDeploymentHelper from "./BaseDeploymentHelper";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { IParams } from "./interfaces";
+import { ethers } from "hardhat";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 export default class HardhatDeploymentHelper extends BaseDeploymentHelper {
+  signer: SignerWithAddress;
+
+  constructor(
+    signer: SignerWithAddress,
+    configParams: IParams,
+    hre: HardhatRuntimeEnvironment,
+    skipSave: boolean = false
+  ) {
+    super(configParams, hre, skipSave);
+    this.signer = signer;
+  }
+
+  getFactory(name: string): Promise<ContractFactory> {
+    return ethers.getContractFactory(name);
+  }
+
+  async sendAndWaitForTransaction(txPromise: ContractTransaction) {
+    await txPromise;
+  }
+
+  getEthersSigner = async () => this.signer;
+
+  async getContract<T extends Contract>(factoryN: string, address: string) {
+    const factory = await this.getFactory(factoryN);
+    return new ethers.Contract(address, factory.interface) as T;
+  }
+
   async deployContract<T extends Contract>(
     factoryName: string,
     prefix = "",
-    params: any[] = [],
-    proxy = false
+    params: any[] = []
   ): Promise<T> {
-    const factory = await this.getFactory(factoryName);
-
     const name = `${prefix}${factoryName}`;
 
-    if (this.state[name] && this.state[name].address) {
-      console.log(
-        `- Using previously deployed ${name} contract at address ${this.state[name].address}`
-      );
-      return this.loadContract<T>(this.state[name].address, factory.abi);
-    }
+    console.log(`- Deploying ${name}`);
 
-    // console.log("- Deploying a proxy", proxy);
-
-    console.log(`- Deploying ${name} with proxy: ${proxy}`);
-    const contract = (await this.deployer.deploy(factory, params, {
+    const factory = await this.getFactory(factoryName);
+    const contract = (await factory.deploy(...params, {
       gasPrice: this.config.GAS_PRICE,
     })) as T;
 
-    // wait for the tx
-    if (this.config.TX_CONFIRMATIONS > 0) {
-      const provider = this.getEthersProvider();
-      await provider.waitForTransaction(
-        contract.deployTransaction.hash,
-        this.config.TX_CONFIRMATIONS
-      );
-    }
-
     console.log(`- Deployed ${name} at ${contract.address}`);
-    this.state[name] = {
-      abi: factoryName || name,
-      address: contract.address,
-      txHash: contract.deployTransaction.hash,
-    };
 
-    this.saveDeployment(this.state);
     return contract;
-    // return proxyImplementationFactory
-    //   ? this._loadContract(contract.address, proxyImplementationFactory.abi)
-    //   : contract;
   }
 }
