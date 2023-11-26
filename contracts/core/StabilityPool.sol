@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../dependencies/PrismaOwnable.sol";
 import "../dependencies/SystemStart.sol";
 import "../dependencies/PrismaMath.sol";
@@ -17,17 +18,17 @@ import "../interfaces/IWrappedLendingCollateral.sol";
             Prisma's implementation is modified to support multiple collaterals. Deposits into
             the stability pool may be used to liquidate any supported collateral type.
  */
-contract StabilityPool is PrismaOwnable, SystemStart {
+contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
     uint256 public constant DECIMAL_PRECISION = 1e18;
     uint128 public constant SUNSET_DURATION = 180 days;
     uint256 constant REWARD_DURATION = 1 weeks;
 
     uint256 public constant emissionId = 0;
 
-    IDebtTokenOnezProxy public immutable debtToken;
-    IPrismaVault public immutable vault;
-    address public immutable factory;
-    address public immutable liquidationManager;
+    IDebtTokenOnezProxy public debtToken;
+    IPrismaVault public vault;
+    address public factory;
+    address public liquidationManager;
 
     uint128 public rewardRate;
     uint32 public lastUpdate;
@@ -150,12 +151,15 @@ contract StabilityPool is PrismaOwnable, SystemStart {
     );
 
     constructor(
-        address _prismaCore,
+        address _prismaCore
+    ) PrismaOwnable(_prismaCore) SystemStart(_prismaCore) {}
+
+    function initialize(
         IDebtTokenOnezProxy _debtTokenAddress,
         IPrismaVault _vault,
         address _factory,
         address _liquidationManager
-    ) PrismaOwnable(_prismaCore) SystemStart(_prismaCore) {
+    ) external initializer {
         debtToken = _debtTokenAddress;
         vault = _vault;
         factory = _factory;

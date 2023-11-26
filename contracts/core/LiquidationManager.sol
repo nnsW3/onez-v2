@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../dependencies/PrismaBase.sol";
 import "../dependencies/PrismaMath.sol";
 import "../interfaces/IBorrowerOperations.sol";
@@ -35,10 +36,10 @@ import "../interfaces/ITroveManager.sol";
                the value of the debt is distributed between stability pool depositors. The remaining
                collateral is left claimable by the trove owner.
  */
-contract LiquidationManager is PrismaBase {
-    IStabilityPool public immutable stabilityPool;
-    IBorrowerOperations public immutable borrowerOperations;
-    address public immutable factory;
+contract LiquidationManager is Initializable, PrismaBase {
+    IStabilityPool public stabilityPool;
+    IBorrowerOperations public borrowerOperations;
+    address public factory;
 
     uint256 private constant _100pct = 1000000000000000000; // 1e18 == 100%
 
@@ -96,12 +97,15 @@ contract LiquidationManager is PrismaBase {
         redeemCollateral
     }
 
-    constructor(
+    constructor(uint256 _gasCompensation) PrismaBase(_gasCompensation) {
+        // nothing
+    }
+
+    function initialize(
         IStabilityPool _stabilityPoolAddress,
         IBorrowerOperations _borrowerOperations,
-        address _factory,
-        uint256 _gasCompensation
-    ) PrismaBase(_gasCompensation) {
+        address _factory
+    ) external initializer {
         stabilityPool = _stabilityPoolAddress;
         borrowerOperations = _borrowerOperations;
         factory = _factory;

@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "../dependencies/PrismaOwnable.sol";
 import "../interfaces/ITroveManager.sol";
@@ -16,14 +17,14 @@ import "../interfaces/ILiquidationManager.sol";
     @notice Deploys cloned pairs of `TroveManager` and `SortedTroves` in order to
             add new collateral types within the system.
  */
-contract Factory is PrismaOwnable {
+contract Factory is Initializable, PrismaOwnable {
     using Clones for address;
 
     // fixed single-deployment contracts
-    IDebtTokenOnezProxy public immutable debtToken;
-    IStabilityPool public immutable stabilityPool;
-    ILiquidationManager public immutable liquidationManager;
-    IBorrowerOperations public immutable borrowerOperations;
+    IDebtTokenOnezProxy public debtToken;
+    IStabilityPool public stabilityPool;
+    ILiquidationManager public liquidationManager;
+    IBorrowerOperations public borrowerOperations;
 
     // implementation contracts, redeployed each time via clone proxy
     address public sortedTrovesImpl;
@@ -50,15 +51,16 @@ contract Factory is PrismaOwnable {
         address sortedTroves
     );
 
-    constructor(
-        address _prismaCore,
+    constructor(address _prismaCore) PrismaOwnable(_prismaCore) {}
+
+    function initialize(
         IDebtTokenOnezProxy _debtToken,
         IStabilityPool _stabilityPool,
         IBorrowerOperations _borrowerOperations,
         address _sortedTroves,
         address _troveManager,
         ILiquidationManager _liquidationManager
-    ) PrismaOwnable(_prismaCore) {
+    ) external initializer {
         debtToken = _debtToken;
         stabilityPool = _stabilityPool;
         borrowerOperations = _borrowerOperations;

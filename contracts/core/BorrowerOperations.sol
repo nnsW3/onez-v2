@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../interfaces/IWrappedLendingCollateral.sol";
 import "../interfaces/ITroveManager.sol";
 import "../interfaces/IDebtTokenOnezProxy.sol";
@@ -18,9 +19,14 @@ import "../dependencies/DelegatedOps.sol";
             Prisma's implementation is modified to support multiple collaterals. There is a 1:n
             relationship between `BorrowerOperations` and each `TroveManager` / `SortedTroves` pair.
  */
-contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
-    IDebtTokenOnezProxy public immutable debtToken;
-    address public immutable factory;
+contract BorrowerOperations is
+    Initializable,
+    PrismaBase,
+    PrismaOwnable,
+    DelegatedOps
+{
+    IDebtTokenOnezProxy public debtToken;
+    address public factory;
     uint256 public minNetDebt;
 
     mapping(ITroveManager => TroveManagerData) public troveManagersData;
@@ -85,11 +91,16 @@ contract BorrowerOperations is PrismaBase, PrismaOwnable, DelegatedOps {
 
     constructor(
         address _prismaCore,
-        address _debtTokenAddress,
-        address _factory,
-        uint256 _minNetDebt,
         uint256 _gasCompensation
     ) PrismaOwnable(_prismaCore) PrismaBase(_gasCompensation) {
+        // nothing
+    }
+
+    function initialize(
+        address _debtTokenAddress,
+        address _factory,
+        uint256 _minNetDebt
+    ) external initializer {
         debtToken = IDebtTokenOnezProxy(_debtTokenAddress);
         factory = _factory;
         _setMinNetDebt(_minNetDebt);

@@ -2,6 +2,8 @@
 
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+
 /**
     @title Prisma Core
     @notice Single source of truth for system-wide values and contract ownership.
@@ -10,7 +12,7 @@ pragma solidity 0.8.19;
             Other ownable Prisma contracts inherit their ownership from this contract
             using `PrismaOwnable`.
  */
-contract PrismaCore {
+contract PrismaCore is Initializable {
     address public feeReceiver;
     address public priceFeed;
 
@@ -30,9 +32,13 @@ contract PrismaCore {
 
     // System-wide start time, rounded down the nearest epoch week.
     // Other contracts that require access to this should inherit `SystemStart`.
-    uint256 public immutable startTime;
+    uint256 public startTime;
 
-    event NewOwnerCommitted(address owner, address pendingOwner, uint256 deadline);
+    event NewOwnerCommitted(
+        address owner,
+        address pendingOwner,
+        uint256 deadline
+    );
 
     event NewOwnerAccepted(address oldOwner, address owner);
 
@@ -48,7 +54,12 @@ contract PrismaCore {
 
     event Unpaused();
 
-    constructor(address _owner, address _guardian, address _priceFeed, address _feeReceiver) {
+    function initialize(
+        address _owner,
+        address _guardian,
+        address _priceFeed,
+        address _feeReceiver
+    ) external initializer {
         owner = _owner;
         startTime = (block.timestamp / 1 weeks) * 1 weeks;
         guardian = _guardian;
@@ -102,7 +113,10 @@ contract PrismaCore {
      * @param _paused If true the protocol is paused
      */
     function setPaused(bool _paused) external {
-        require((_paused && msg.sender == guardian) || msg.sender == owner, "Unauthorized");
+        require(
+            (_paused && msg.sender == guardian) || msg.sender == owner,
+            "Unauthorized"
+        );
         paused = _paused;
         if (_paused) {
             emit Paused();
@@ -115,12 +129,19 @@ contract PrismaCore {
         pendingOwner = newOwner;
         ownershipTransferDeadline = block.timestamp + OWNERSHIP_TRANSFER_DELAY;
 
-        emit NewOwnerCommitted(msg.sender, newOwner, block.timestamp + OWNERSHIP_TRANSFER_DELAY);
+        emit NewOwnerCommitted(
+            msg.sender,
+            newOwner,
+            block.timestamp + OWNERSHIP_TRANSFER_DELAY
+        );
     }
 
     function acceptTransferOwnership() external {
         require(msg.sender == pendingOwner, "Only new owner");
-        require(block.timestamp >= ownershipTransferDeadline, "Deadline not passed");
+        require(
+            block.timestamp >= ownershipTransferDeadline,
+            "Deadline not passed"
+        );
 
         emit NewOwnerAccepted(owner, msg.sender);
 

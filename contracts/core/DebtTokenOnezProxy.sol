@@ -2,28 +2,29 @@
 
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IONEZ.sol";
 import "../interfaces/IPrismaCore.sol";
 import "../interfaces/IDebtTokenOnezProxy.sol";
 
 /// @dev A proxy contract that abstracts the minting and burning to the onez token.
-contract DebtTokenOnezProxy is IDebtTokenOnezProxy {
+contract DebtTokenOnezProxy is Initializable, IDebtTokenOnezProxy {
     IONEZ public onez;
 
     // --- Addresses ---
-    IPrismaCore private immutable _prismaCore;
-    address public immutable stabilityPoolAddress;
-    address public immutable borrowerOperationsAddress;
-    address public immutable factory;
-    address public immutable gasPool;
+    IPrismaCore private _prismaCore;
+    address public stabilityPoolAddress;
+    address public borrowerOperationsAddress;
+    address public factory;
+    address public gasPool;
 
     mapping(address => bool) public troveManager;
 
     // Amount of debt to be locked in gas pool on opening troves
-    uint256 public immutable DEBT_GAS_COMPENSATION;
+    uint256 public DEBT_GAS_COMPENSATION;
 
-    constructor(
+    function initialize(
         IONEZ _onez,
         address _stabilityPoolAddress,
         address _borrowerOperationsAddress,
@@ -31,7 +32,7 @@ contract DebtTokenOnezProxy is IDebtTokenOnezProxy {
         address _factory,
         address _gasPool,
         uint256 _gasCompensation
-    ) {
+    ) external initializer {
         onez = _onez;
 
         stabilityPoolAddress = _stabilityPoolAddress;

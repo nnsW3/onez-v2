@@ -47,7 +47,7 @@ const config: HardhatUserConfig = {
       zksync: true,
     },
     hardhat: {
-      zksync: true,
+      zksync: false,
     },
   },
   zksolc: {
