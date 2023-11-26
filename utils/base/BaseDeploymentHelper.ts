@@ -84,7 +84,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     external: IExternalContracts
   ): Promise<ICoreContracts> {
     this.log(`------ Deploying core contracts ------`);
-    const gasCompenstaion = this.config.GAS_COMPENSATION;
+    const gasCompenstaion = e18.mul(this.config.GAS_COMPENSATION);
 
     const prismaCore = await this.deployContract<PrismaCore>("PrismaCore");
     const factory = await this.deployContract<Factory>("Factory", [
@@ -187,7 +187,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
   private async connectContracts(core: ICoreContracts, gov: IGovContracts) {
     this.log(`------ Connecting contracts ------`);
 
-    const gasCompenstaion = this.config.GAS_COMPENSATION;
+    const gasCompenstaion = e18.mul(this.config.GAS_COMPENSATION);
 
     await this.waitForTx(
       core.debtTokenOnezProxy.initialize(
@@ -213,7 +213,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
       core.borrowerOperations.initialize(
         core.debtTokenOnezProxy.address,
         core.factory.address,
-        this.config.MIN_NET_DEBT
+        e18.mul(this.config.MIN_NET_DEBT)
       )
     );
 

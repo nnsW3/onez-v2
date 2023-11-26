@@ -3,7 +3,6 @@ import { IParams } from "../../utils/base/interfaces";
 
 const params: IParams = {
   RPC_URL: "https://testnet.era.zksync.dev",
-  PYTH_ADDRESS: "0xC38B1dd611889Abc95d4E0a472A667c3671c08DE",
   COLLATERALS: [
     {
       pythId:
@@ -22,15 +21,20 @@ const params: IParams = {
       capacityE18: "10000000000000000000000000", // 100 mil mint
     },
   ],
+
+  PYTH_ADDRESS: "0xC38B1dd611889Abc95d4E0a472A667c3671c08DE",
+  ONEZ: ZERO_ADDRESS,
   LAYERZERO_ENDPOINT: ZERO_ADDRESS,
+  LENDING_POOL_ADDRESS: "0xC4b785A74b3d8EBE75C8d0b8Ff960d66527CAE63",
   ADMIN_ADDRESS: "0xb76F765A785eCa438e1d95f594490088aFAF9acc",
   DEPLOYER_ADDRESS: "0xb76F765A785eCa438e1d95f594490088aFAF9acc",
   OUTPUT_FILE: "./output/zksync-goerli.json",
-  GAS_PRICE: 5 * 1000000000, // 5.1 gwei
-  LENDING_POOL_ADDRESS: "0xC4b785A74b3d8EBE75C8d0b8Ff960d66527CAE63",
+  GAS_PRICE: 5 * 1000000000,
   TX_CONFIRMATIONS: 0,
   ETHERSCAN_BASE_URL: "https://goerli.explorer.zksync.io",
   NETWORK_NAME: "zksync-goerli",
+  MIN_NET_DEBT: 200,
+  GAS_COMPENSATION: 10,
 };
 
 export default params;
