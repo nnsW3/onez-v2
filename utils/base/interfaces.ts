@@ -2,18 +2,23 @@ import {
   BorrowerOperations,
   DebtTokenOnezProxy,
   Factory,
+  FeeReceiver,
   GasPool,
+  IncentiveVoting,
   LiquidationManager,
   MultiCollateralHintHelpers,
   MultiTroveGetter,
   ONEZ,
   PriceFeedPyth,
   PrismaCore,
+  PrismaToken,
   SortedTroves,
   StabilityPool,
+  TokenLocker,
   TroveManager,
   TroveManagerGetters,
-} from "../typechain";
+} from "../../typechain";
+import { PrismaVault } from "../../typechain/contracts/dao/Vault.sol";
 
 export type ICollateral = {
   pythId: string;
@@ -62,4 +67,12 @@ export interface ICoreContracts {
   multiCollateralHintHelpers: MultiCollateralHintHelpers;
   multiTroveGetter: MultiTroveGetter;
   troveManagerGetters: TroveManagerGetters;
+}
+
+export interface IGovContracts {
+  feeReceiver: FeeReceiver;
+  prismaToken: PrismaToken;
+  tokenLocker: TokenLocker;
+  incentiveVoting: IncentiveVoting;
+  prismaVault: PrismaVault;
 }

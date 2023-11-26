@@ -89,13 +89,8 @@ contract IncentiveVoting is Initializable, DelegatedOps, SystemStart {
     // emitted each time the votes for `account` are cleared
     event ClearedVotes(address indexed account, uint256 indexed week);
 
-    constructor(
-        address _prismaCore,
-        ITokenLocker _tokenLocker,
-        address _vault
-    ) SystemStart(_prismaCore) {
-        tokenLocker = _tokenLocker;
-        vault = _vault;
+    constructor(address _prismaCore) SystemStart(_prismaCore) {
+        // nothing
     }
 
     function initialize(

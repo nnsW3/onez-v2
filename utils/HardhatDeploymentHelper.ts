@@ -1,7 +1,7 @@
 import { Contract, ContractFactory, ContractTransaction } from "ethers";
 import BaseDeploymentHelper from "./base/BaseDeploymentHelper";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { IParams } from "./interfaces";
+import { IParams } from "./base/interfaces";
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 

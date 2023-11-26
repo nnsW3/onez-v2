@@ -1,7 +1,7 @@
 import { Contract } from "ethers";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { IParams } from "./interfaces";
+import { IParams } from "./base/interfaces";
 import { Provider, Wallet } from "zksync-web3";
 import { ZkSyncArtifact } from "@matterlabs/hardhat-zksync-deploy/dist/types";
 import * as ethers from "ethers";

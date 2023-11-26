@@ -1,6 +1,6 @@
 import { Contract } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { IParams, IState } from "../interfaces";
+import { IParams, IState } from "./interfaces";
 import * as ethers from "ethers";
 import fs from "fs";
 
@@ -95,5 +95,9 @@ export default abstract class BaseHelper {
       name
     ].verification = `${this.config.ETHERSCAN_BASE_URL}/address/${this.state[name].address}#code`;
     this.saveDeployment(this.state);
+  }
+
+  log(...msg: string[]) {
+    console.log(...msg);
   }
 }

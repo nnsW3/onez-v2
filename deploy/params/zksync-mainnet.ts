@@ -1,5 +1,5 @@
 import { ZERO_ADDRESS } from "../../utils/base/BaseHelper";
-import { IParams } from "../../utils/interfaces";
+import { IParams } from "../../utils/base/interfaces";
 
 const params: IParams = {
   RPC_URL: "https://mainnet.era.zksync.io",

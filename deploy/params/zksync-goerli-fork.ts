@@ -1,4 +1,4 @@
-import { IParams } from "../../utils/interfaces";
+import { IParams } from "../../utils/base/interfaces";
 import goerli from "./zksync-goerli";
 
 const params: IParams = {
