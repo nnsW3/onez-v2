@@ -108,4 +108,40 @@ describe("Basic Functionalities", function () {
 
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(200));
   });
+
+  it("Should redeem against trove with ETH collateral", async function () {
+    // todo
+  });
+
+  it("Should liquidate a bad trove", async function () {
+    // todo
+  });
+
+  it("Should increase collateral in a trove", async function () {
+    // todo
+  });
+
+  it("Should decrease collateral in a trove", async function () {
+    // todo
+  });
+
+  it("Should increase debt in a trove", async function () {
+    // todo
+  });
+
+  it("Should decrease debt in a trove", async function () {
+    // todo
+  });
+
+  it("Should deposit into StabilityPool", async function () {
+    // todo
+  });
+
+  it("Should claim liquidation rewards from StabilityPool", async function () {
+    // todo
+  });
+
+  it("Should not give rewards until NULLZ is issued", async function () {
+    // todo
+  });
 });
