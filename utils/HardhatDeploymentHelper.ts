@@ -23,7 +23,7 @@ export default class HardhatDeploymentHelper extends BaseDeploymentHelper {
   }
 
   async waitForTx(txPromise: Promise<ContractTransaction>) {
-    console.log("- tx sent", (await txPromise).hash);
+    this.log("- tx sent", (await txPromise).hash);
   }
 
   getEthersSigner = async () => this.signer;
@@ -37,14 +37,14 @@ export default class HardhatDeploymentHelper extends BaseDeploymentHelper {
     name: string,
     params: any[] = []
   ): Promise<T> {
-    console.log(`- Deploying ${name}`);
+    this.log(`- Deploying ${name}`);
 
     const factory = await this.getFactory(name);
     const contract = (await factory.deploy(...params, {
       gasPrice: this.config.GAS_PRICE,
     })) as T;
 
-    console.log(`- Deployed ${name} at ${contract.address}`);
+    this.log(`- Deployed ${name} at ${contract.address}`);
 
     return contract;
   }

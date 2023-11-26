@@ -26,11 +26,11 @@ export default abstract class BaseHelper {
 
   loadPreviousDeployment() {
     if (fs.existsSync(this.config.OUTPUT_FILE)) {
-      console.log();
-      console.log(`------  Loading previous deployment ------ `);
+      this.log();
+      this.log(`------  Loading previous deployment ------ `);
       this.state = require("../" + this.config.OUTPUT_FILE);
-      console.log(`------  Done loading previous deployment ------ `);
-      console.log();
+      this.log(`------  Done loading previous deployment ------ `);
+      this.log();
     }
   }
 
@@ -72,18 +72,18 @@ export default abstract class BaseHelper {
     }
 
     if (this.state[name].verification) {
-      console.log(`- Contract ${name} already verified`);
+      this.log(`- Contract ${name} already verified`);
       return;
     }
 
     try {
-      console.log(`- Contract ${name} is being verified`);
+      this.log(`- Contract ${name} is being verified`);
       await this.hre.run("verify:verify", {
         address: this.state[name].address,
         constructorArguments,
       });
     } catch (error: any) {
-      console.log(error);
+      this.log(error);
       if (error.name != "NomicLabsHardhatPluginError") {
         console.error(`- Error verifying: ${error.name}`);
         console.error(error);

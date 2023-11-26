@@ -4,6 +4,8 @@ import {
   Factory,
   FeeReceiver,
   GasPool,
+  ILendingPool,
+  IPyth,
   IncentiveVoting,
   LiquidationManager,
   MultiCollateralHintHelpers,
@@ -19,6 +21,11 @@ import {
   TroveManager,
   TroveManagerGetters,
 } from "../../typechain";
+
+export interface IExternalContracts {
+  lendingPool: ILendingPool;
+  pyth: IPyth;
+}
 
 export type ICollateral = {
   pythId: string;

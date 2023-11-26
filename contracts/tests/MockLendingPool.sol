@@ -6,14 +6,11 @@ import "../interfaces/ILendingPool.sol";
 import "./MintableERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
-import "hardhat/console.sol";
-
 contract MockLendingPool is ILendingPool {
     mapping(IERC20 => MintableERC20) aTokenMapping;
 
     function initReserve(IERC20Metadata asset) external {
         if (aTokenMapping[asset] != MintableERC20(address(0))) return;
-        console.log("get", asset.name());
         MintableERC20 a = new MintableERC20(asset.name(), asset.symbol());
         aTokenMapping[asset] = a;
     }

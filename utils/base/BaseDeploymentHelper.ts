@@ -26,14 +26,14 @@ import {
   MockLendingPool,
   MockPyth,
   MintableERC20,
-  contracts,
 } from "../../typechain";
-import { ICollateral, ICoreContracts, IGovContracts } from "./interfaces";
-
-interface IExternalContracts {
-  lendingPool: ILendingPool;
-  pyth: IPyth;
-}
+import {
+  ICollateral,
+  ICoreContracts,
+  IGovContracts,
+  IExternalContracts,
+} from "./interfaces";
+import Bluebird from "bluebird";
 
 export default abstract class BaseDeploymentHelper extends BaseHelper {
   public async deploy() {
@@ -55,14 +55,24 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     // connect contracts
     await this.connectContracts(core, gov);
 
-    for (let index = 0; index < this.config.COLLATERALS.length; index++) {
-      await this.addCollateral(
-        core,
-        gov,
-        external,
-        this.config.COLLATERALS[index]
-      );
-    }
+    const collaterals = await Bluebird.mapSeries(
+      this.config.COLLATERALS,
+      async (token) => {
+        const contracts = await this.addCollateral(core, gov, external, token);
+
+        return {
+          contracts,
+          token,
+        };
+      }
+    );
+
+    return {
+      core,
+      gov,
+      external,
+      collaterals,
+    };
   }
 
   private async deployCore(
