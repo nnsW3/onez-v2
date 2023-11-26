@@ -22,8 +22,8 @@ export default class HardhatDeploymentHelper extends BaseDeploymentHelper {
     return ethers.getContractFactory(name);
   }
 
-  async sendAndWaitForTransaction(txPromise: ContractTransaction) {
-    await txPromise;
+  async waitForTx(txPromise: Promise<ContractTransaction>) {
+    console.log("- tx sent", (await txPromise).hash);
   }
 
   getEthersSigner = async () => this.signer;

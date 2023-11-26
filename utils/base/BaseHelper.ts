@@ -39,8 +39,8 @@ export default abstract class BaseHelper {
     fs.writeFileSync(this.config.OUTPUT_FILE, state);
   }
 
-  abstract sendAndWaitForTransaction(
-    txPromise: ethers.ContractTransaction
+  abstract waitForTx(
+    txPromise: Promise<ethers.ContractTransaction>
   ): Promise<void>;
 
   abstract getEthersSigner(privateKey?: string): Promise<ethers.Signer>;

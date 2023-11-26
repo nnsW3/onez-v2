@@ -26,7 +26,7 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
     return await this.deployer.loadArtifact(name);
   }
 
-  async sendAndWaitForTransaction(txPromise: ethers.ContractTransaction) {
+  async waitForTx(txPromise: Promise<ethers.ContractTransaction>) {
     const tx = await txPromise;
     if (this.config.TX_CONFIRMATIONS === 0) return;
     await this.deployer.ethWallet.provider.waitForTransaction(

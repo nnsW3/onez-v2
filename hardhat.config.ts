@@ -9,7 +9,12 @@ import "hardhat-abi-exporter";
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   networks: {
-    hardhat: {},
+    hardhat: {
+      accounts: {
+        mnemonic:
+          "burger broccoli appear involve admit own next member begin direct flee host seven game hat",
+      },
+    },
   },
   typechain: {
     outDir: "typechain",

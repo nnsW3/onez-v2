@@ -17,7 +17,9 @@ contract PriceFeedPyth is PrismaOwnable {
 
     // State ------------------------------------------------------------------------------------------------------------
 
-    constructor(address _prismaCore) PrismaOwnable(_prismaCore) {}
+    constructor(address _prismaCore, address _pyth) PrismaOwnable(_prismaCore) {
+        pyth = IPyth(_pyth);
+    }
 
     // Admin routines ---------------------------------------------------------------------------------------------------
 

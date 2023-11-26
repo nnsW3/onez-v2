@@ -12,13 +12,13 @@ import {
   PriceFeedPyth,
   PrismaCore,
   PrismaToken,
+  PrismaVault,
   SortedTroves,
   StabilityPool,
   TokenLocker,
   TroveManager,
   TroveManagerGetters,
 } from "../../typechain";
-import { PrismaVault } from "../../typechain/contracts/dao/Vault.sol";
 
 export type ICollateral = {
   pythId: string;
@@ -41,6 +41,9 @@ export interface IParams {
   LENDING_POOL_ADDRESS: string;
   ETHERSCAN_BASE_URL?: string;
   NETWORK_NAME: string;
+
+  MIN_NET_DEBT: number;
+  GAS_COMPENSATION: number;
 }
 
 export type IState = {
