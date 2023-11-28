@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import {
   ICoreContracts,
   IExternalContracts,
@@ -11,6 +12,7 @@ import hre from "hardhat";
 import params from "../deploy/params/hardhat-test";
 import { BigNumber } from "ethers";
 import { ZERO_ADDRESS } from "../utils/base/BaseHelper";
+import { formatEther } from "ethers/lib/utils";
 
 describe("Basic Functionalities", function () {
   let core: ICoreContracts;
@@ -146,8 +148,9 @@ describe("Basic Functionalities", function () {
       .closeTrove(core.factory.troveManagers(0), deployer.address);
   });
 
-  it.only("Should redeem against trove with ETH collateral", async function () {
+  it("Should redeem against trove with ETH collateral", async function () {
     const bo = core.borrowerOperations;
+    const collateral = collaterals[0];
 
     await bo
       .connect(deployer)
@@ -169,21 +172,27 @@ describe("Basic Functionalities", function () {
     const tmAddr = await core.factory.troveManagers(0);
     const tm = core.troveManager.attach(tmAddr);
 
-    console.log(await core.borrowerOperations.address);
-    console.log(await tm.borrowerOperationsAddress());
+    // go forward 15 days
+    await time.increase(86400 * 15);
 
-    await tm
+    // perform redemption
+    await core.onez
       .connect(ant)
-      .redeemCollateral(
-        e18.mul(100),
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        0,
-        1000,
-        await tm.maxRedemptionFee()
-      );
+      .approve(core.debtTokenOnezProxy.address, e18.mul(100));
 
+    await tm.connect(ant).redeemCollateral(
+      e18.mul(100),
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      "184102230885856616", // redeemptionHint
+      0,
+      await tm.maxRedemptionFee()
+    );
+
+    const erc20 = await collateral.erc20.connect(ant);
+
+    expect(await erc20.balanceOf(ant.address)).eq("50746329526916802");
     expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(0));
   });
 

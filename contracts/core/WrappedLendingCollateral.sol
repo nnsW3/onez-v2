@@ -69,7 +69,7 @@ contract WrappedLendingCollateral is
     ) internal nonReentrant {
         if (amount == 0) return;
 
-        uint256 percentageOfSupply = (balanceOf(from) * 1e18) / totalSupply();
+        uint256 percentageOfSupply = (amount * 1e18) / totalSupply();
 
         uint256 aTokensHeld = aToken.balanceOf(address(this));
         uint256 aTokensToRedeem = (aTokensHeld * percentageOfSupply) / 1e18;
