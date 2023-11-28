@@ -91,7 +91,7 @@ export interface ICoreContracts {
 
 export interface IGovContracts {
   feeReceiver: FeeReceiver;
-  prismaToken: PrismaToken;
+  nullz: PrismaToken;
   tokenLocker: TokenLocker;
   incentiveVoting: IncentiveVoting;
   prismaVault: PrismaVault;

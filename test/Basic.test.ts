@@ -148,7 +148,7 @@ describe("Basic Functionalities", function () {
       .closeTrove(core.factory.troveManagers(0), deployer.address);
   });
 
-  it("Should redeem against trove with ETH collateral", async function () {
+  it("Should redeem against trove with ETH collateral after bootstrap period has passed", async function () {
     const bo = core.borrowerOperations;
     const collateral = collaterals[0];
 
@@ -216,15 +216,71 @@ describe("Basic Functionalities", function () {
     // todo
   });
 
-  it("Should deposit into StabilityPool", async function () {
-    // todo
+  it("Should deposit/withdraw into StabilityPool", async function () {
+    const bo = core.borrowerOperations;
+
+    await bo
+      .connect(deployer)
+      .openTrove(
+        core.factory.troveManagers(0),
+        deployer.address,
+        e18,
+        e18,
+        e18.mul(600),
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        { value: e18 }
+      );
+
+    await core.onez
+      .connect(deployer)
+      .approve(core.debtTokenOnezProxy.address, e18.mul(600));
+
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(600));
+    await core.stabilityPool.provideToSP(e18.mul(600));
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
+
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
+    await core.stabilityPool.withdrawFromSP(e18.mul(300));
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(300));
   });
 
   it("Should claim liquidation rewards from StabilityPool", async function () {
     // todo
   });
 
-  it("Should not give rewards until NULLZ is issued", async function () {
-    // todo
+  it("Should not give rewards from StabilityPool until NULLZ is issued", async function () {
+    const bo = core.borrowerOperations;
+
+    await bo
+      .connect(deployer)
+      .openTrove(
+        core.factory.troveManagers(0),
+        deployer.address,
+        e18,
+        e18,
+        e18.mul(600),
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        { value: e18 }
+      );
+
+    await core.onez
+      .connect(deployer)
+      .approve(core.debtTokenOnezProxy.address, e18.mul(600));
+
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(600));
+    await core.stabilityPool.provideToSP(e18.mul(600));
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
+
+    await time.increase(86400 * 15);
+
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
+    await core.stabilityPool.claimReward(deployer.address);
+    expect(await gov.nullz.balanceOf(deployer.address)).to.equal(e18.mul(0));
+  });
+
+  it("Should give rewards from StabilityPool if NULLZ is issued", async function () {
+    // TODO:
   });
 });

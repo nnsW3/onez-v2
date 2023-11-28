@@ -158,7 +158,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
       core.prismaCore.address,
     ]);
 
-    const prismaToken = await this.deployContract<PrismaToken>("PrismaToken", [
+    const nullz = await this.deployContract<PrismaToken>("PrismaToken", [
       this.config.LAYERZERO_ENDPOINT,
     ]);
 
@@ -177,7 +177,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
 
     return {
       feeReceiver,
-      prismaToken,
+      nullz,
       tokenLocker,
       incentiveVoting,
       prismaVault,
@@ -259,7 +259,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     );
 
     await this.waitForTx(
-      gov.prismaToken.initialize(
+      gov.nullz.initialize(
         gov.prismaVault.address, // address _vault,
         gov.tokenLocker.address // address _locker
       )
@@ -267,7 +267,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
 
     await this.waitForTx(
       gov.tokenLocker.initialize(
-        gov.prismaToken.address, // IPrismaToken _token,
+        gov.nullz.address, // IPrismaToken _token,
         gov.incentiveVoting.address, // IIncentiveVoting _voter,
         this.config.DEPLOYER_ADDRESS, // address _manager,
         1 // uint256 _lockToTokenRatio // TODO: find the value of this
@@ -281,7 +281,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     );
     await this.waitForTx(
       gov.prismaVault.initialize(
-        gov.prismaToken.address, // IPrismaToken _token,
+        gov.nullz.address, // IPrismaToken _token,
         gov.tokenLocker.address, // ITokenLocker _locker,
         gov.incentiveVoting.address, // IIncentiveVoting _voter,
         core.stabilityPool.address, // address _stabilityPool,
