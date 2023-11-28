@@ -46,7 +46,7 @@ export const provideToSP = async (
 export const withdrawFromSP = async (
   core: ICoreContracts,
   user: SignerWithAddress,
-  amount: BigNumber
+  amount: number
 ) => {
   await core.stabilityPool.connect(user).withdrawFromSP(e18.mul(amount));
 };

@@ -10,13 +10,11 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import HardhatDeploymentHelper from "../utils/HardhatDeploymentHelper";
 import hre from "hardhat";
 import params from "../deploy/params/hardhat-test";
-import { BigNumber } from "ethers";
 import { ZERO_ADDRESS } from "../utils/base/BaseHelper";
-import { formatEther } from "ethers/lib/utils";
 import { e18, openTroves, provideToSP, withdrawFromSP } from "./helpers";
 import { BorrowerOperations, StabilityPool, TroveManager } from "../typechain";
 
-describe("Basic Functionalities", function () {
+describe("Core Functionalities", function () {
   let core: ICoreContracts;
   let gov: IGovContracts;
   let external: IExternalContracts;
@@ -155,55 +153,75 @@ describe("Basic Functionalities", function () {
       .closeTrove(core.factory.troveManagers(0), deployer.address);
   });
 
-  it("Should redeem against trove with ETH collateral after bootstrap period has passed", async function () {
-    const bo = core.borrowerOperations;
-    const collateral = collaterals[0];
+  describe("trove modifications", () => {
+    it("Should increase collateral in a trove", async function () {
+      // todo
+    });
 
-    await bo
-      .connect(deployer)
-      .openTrove(
-        core.factory.troveManagers(0),
-        deployer.address,
-        e18,
-        e18,
-        e18.mul(600),
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        { value: e18 }
-      );
+    it("Should decrease collateral in a trove", async function () {
+      // todo
+    });
 
-    await core.onez.transfer(ant.address, e18.mul(100));
-    expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(100));
+    it("Should increase debt in a trove", async function () {
+      // todo
+    });
 
-    // redeem the 100 ONEZ
-    const tmAddr = await core.factory.troveManagers(0);
-    const tm = core.troveManager.attach(tmAddr);
-
-    // go forward 15 days
-    await time.increase(86400 * 15);
-
-    // perform redemption
-    await core.onez
-      .connect(ant)
-      .approve(core.debtTokenOnezProxy.address, e18.mul(100));
-
-    await tm.connect(ant).redeemCollateral(
-      e18.mul(100),
-      ZERO_ADDRESS,
-      ZERO_ADDRESS,
-      ZERO_ADDRESS,
-      "184102230885856616", // redeemptionHint
-      0,
-      await tm.maxRedemptionFee()
-    );
-
-    const erc20 = await collateral.erc20.connect(ant);
-
-    expect(await erc20.balanceOf(ant.address)).eq("50746329526916802");
-    expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(0));
+    it("Should decrease debt in a trove", async function () {
+      // todo
+    });
   });
 
-  describe.only("during liquidation", () => {
+  describe("redemptions", () => {
+    it("Should redeem against trove with ETH collateral after bootstrap period has passed", async function () {
+      const bo = core.borrowerOperations;
+      const collateral = collaterals[0];
+
+      await bo
+        .connect(deployer)
+        .openTrove(
+          core.factory.troveManagers(0),
+          deployer.address,
+          e18,
+          e18,
+          e18.mul(600),
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+          { value: e18 }
+        );
+
+      await core.onez.transfer(ant.address, e18.mul(100));
+      expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(100));
+
+      // redeem the 100 ONEZ
+      const tmAddr = await core.factory.troveManagers(0);
+      const tm = core.troveManager.attach(tmAddr);
+
+      // go forward 15 days
+      await time.increase(86400 * 15);
+
+      // perform redemption
+      await core.onez
+        .connect(ant)
+        .approve(core.debtTokenOnezProxy.address, e18.mul(100));
+
+      await tm.connect(ant).redeemCollateral(
+        e18.mul(100),
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        "184102230885856616", // redeemptionHint
+        0,
+        await tm.maxRedemptionFee()
+      );
+
+      const erc20 = await collateral.erc20.connect(ant);
+
+      expect(await erc20.balanceOf(ant.address)).eq("50746329526916802");
+      expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(0));
+    });
+  });
+
+  describe("liquidations", () => {
     let goodWallets: SignerWithAddress[];
     let tm: TroveManager;
 
@@ -263,82 +281,86 @@ describe("Basic Functionalities", function () {
       await sp.connect(goodGuy).claimCollateralGains(goodGuy.address, [0]);
       expect(await coll.balanceOf(goodGuy.address)).eq("165833333333333100");
     });
+
+    it("Should liquidate a bad trove using partial funds from the stability pool", async function () {
+      // todo
+    });
+
+    it("Should liquidate a bad trove using funds from user", async function () {
+      // todo
+    });
+
+    it("Should liquidate a bad trove by reorganising debt via default pool", async function () {
+      // todo
+    });
   });
 
-  it("Should increase collateral in a trove", async function () {
-    // todo
-  });
+  describe("stability pool", () => {
+    it("Should deposit/withdraw into StabilityPool", async function () {
+      const bo = core.borrowerOperations;
 
-  it("Should decrease collateral in a trove", async function () {
-    // todo
-  });
+      await bo
+        .connect(deployer)
+        .openTrove(
+          core.factory.troveManagers(0),
+          deployer.address,
+          e18,
+          e18,
+          e18.mul(600),
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+          { value: e18 }
+        );
 
-  it("Should increase debt in a trove", async function () {
-    // todo
-  });
-
-  it("Should decrease debt in a trove", async function () {
-    // todo
-  });
-
-  it("Should deposit/withdraw into StabilityPool", async function () {
-    const bo = core.borrowerOperations;
-
-    await bo
-      .connect(deployer)
-      .openTrove(
-        core.factory.troveManagers(0),
-        deployer.address,
-        e18,
-        e18,
-        e18.mul(600),
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        { value: e18 }
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(
+        e18.mul(600)
       );
+      await provideToSP(core, deployer, 600);
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
 
-    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(600));
-    await provideToSP(core, deployer, 600);
-    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
-
-    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
-    await withdrawFromSP(core, deployer, e18.mul(300));
-    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(300));
-  });
-
-  it("Should claim liquidation rewards from StabilityPool", async function () {
-    // todo
-  });
-
-  it("Should not give rewards from StabilityPool until NULLZ is issued", async function () {
-    const bo = core.borrowerOperations;
-
-    await bo
-      .connect(deployer)
-      .openTrove(
-        core.factory.troveManagers(0),
-        deployer.address,
-        e18,
-        e18,
-        e18.mul(600),
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        { value: e18 }
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
+      await withdrawFromSP(core, deployer, 300);
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(
+        e18.mul(300)
       );
+    });
 
-    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(600));
-    await provideToSP(core, deployer, 600);
-    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
+    it("Should claim liquidation rewards from StabilityPool", async function () {
+      // todo
+    });
 
-    await time.increase(86400 * 15);
+    it("Should not give rewards from StabilityPool until NULLZ is issued", async function () {
+      const bo = core.borrowerOperations;
 
-    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
-    await withdrawFromSP(core, deployer, e18.mul(300));
-    expect(await gov.nullz.balanceOf(deployer.address)).to.equal(e18.mul(0));
-  });
+      await bo
+        .connect(deployer)
+        .openTrove(
+          core.factory.troveManagers(0),
+          deployer.address,
+          e18,
+          e18,
+          e18.mul(600),
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+          { value: e18 }
+        );
 
-  it("Should give rewards from StabilityPool if NULLZ is issued", async function () {
-    // TODO:
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(
+        e18.mul(600)
+      );
+      await provideToSP(core, deployer, 600);
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
+
+      await time.increase(86400 * 15);
+
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
+      await withdrawFromSP(core, deployer, 300);
+      expect(await gov.nullz.balanceOf(deployer.address)).to.equal(e18.mul(0));
+    });
+
+    it("Should give rewards from StabilityPool if NULLZ is issued", async function () {
+      // TODO:
+    });
   });
 
   describe("Recovery mode tests", async () => {
