@@ -10,6 +10,7 @@ const params: IParams = {
       address: ZERO_ADDRESS,
       symbol: "WETH",
       decimals: 18,
+      interestRateInBps: "0",
       capacityE18: "10000000000000000000000000", // 100 mil mint
     },
   ],

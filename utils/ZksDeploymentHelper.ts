@@ -59,14 +59,14 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
     name: string,
     params: any[] = []
   ): Promise<T> {
-    if (this.state[name] && this.state[name].address) {
-      console.log(
+    if (this.state[name] && this.state[name].address && !this.skipSave) {
+      this.log(
         `- Using previously deployed ${name} contract at address ${this.state[name].address}`
       );
       return this.getContract<T>(this.state[name].address, name);
     }
 
-    console.log(`- Deploying ${name}`);
+    this.log(`- Deploying ${name}`);
     const factory = await this.getFactory(name);
     const contract = (await this.deployer.deploy(factory, params, {
       gasPrice: this.config.GAS_PRICE,
@@ -81,7 +81,7 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
       );
     }
 
-    console.log(`- Deployed ${name} at ${contract.address}`);
+    this.log(`- Deployed ${name} at ${contract.address}`);
     this.state[name] = {
       abi: name,
       address: contract.address,

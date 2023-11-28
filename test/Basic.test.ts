@@ -18,11 +18,12 @@ describe("Basic Functionalities", function () {
   let external: IExternalContracts;
   let collaterals: ITokenContracts[];
   let deployer: SignerWithAddress;
+  let ant: SignerWithAddress;
 
   const e18 = BigNumber.from(10).pow(18);
 
   beforeEach(async () => {
-    [deployer] = await ethers.getSigners();
+    [deployer, ant] = await ethers.getSigners();
     const helper = new HardhatDeploymentHelper(deployer, params, hre);
     helper.log = () => {
       /* nothing */
@@ -109,8 +110,81 @@ describe("Basic Functionalities", function () {
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(200));
   });
 
-  it("Should redeem against trove with ETH collateral", async function () {
-    // todo
+  it("Should close a trove with ETH collateral as WETH", async function () {
+    const bo = core.borrowerOperations;
+
+    await bo
+      .connect(deployer)
+      .openTrove(
+        core.factory.troveManagers(0),
+        deployer.address,
+        e18,
+        e18,
+        e18.mul(200),
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        { value: e18 }
+      );
+
+    expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(200));
+
+    // claim trove open fees
+    await gov.feeReceiver
+      .connect(deployer)
+      .transferToken(
+        core.onez.address,
+        deployer.address,
+        await core.onez.balanceOf(gov.feeReceiver.address)
+      );
+
+    await core.onez
+      .connect(deployer)
+      .approve(core.debtTokenOnezProxy.address, e18.mul(300));
+
+    await bo
+      .connect(deployer)
+      .closeTrove(core.factory.troveManagers(0), deployer.address);
+  });
+
+  it.only("Should redeem against trove with ETH collateral", async function () {
+    const bo = core.borrowerOperations;
+
+    await bo
+      .connect(deployer)
+      .openTrove(
+        core.factory.troveManagers(0),
+        deployer.address,
+        e18,
+        e18,
+        e18.mul(600),
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        { value: e18 }
+      );
+
+    await core.onez.transfer(ant.address, e18.mul(100));
+    expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(100));
+
+    // redeem the 100 ONEZ
+    const tmAddr = await core.factory.troveManagers(0);
+    const tm = core.troveManager.attach(tmAddr);
+
+    console.log(await core.borrowerOperations.address);
+    console.log(await tm.borrowerOperationsAddress());
+
+    await tm
+      .connect(ant)
+      .redeemCollateral(
+        e18.mul(100),
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        0,
+        1000,
+        await tm.maxRedemptionFee()
+      );
+
+    expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(0));
   });
 
   it("Should liquidate a bad trove", async function () {

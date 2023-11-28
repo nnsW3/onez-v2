@@ -41,6 +41,7 @@ export type ICollateral = {
   decimals: number;
   address: string;
   capacityE18: string;
+  interestRateInBps: string;
 };
 
 export interface IParams {

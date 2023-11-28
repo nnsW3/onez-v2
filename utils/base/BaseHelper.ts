@@ -35,6 +35,7 @@ export default abstract class BaseHelper {
   }
 
   saveDeployment(_state: IState) {
+    if (!this.skipSave) return;
     const state = JSON.stringify(_state, null, 2);
     fs.writeFileSync(this.config.OUTPUT_FILE, state);
   }

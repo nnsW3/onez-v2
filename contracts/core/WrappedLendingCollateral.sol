@@ -67,13 +67,14 @@ contract WrappedLendingCollateral is
         address to,
         uint256 amount
     ) internal nonReentrant {
-        _burn(from, amount);
+        if (amount == 0) return;
 
         uint256 percentageOfSupply = (balanceOf(from) * 1e18) / totalSupply();
 
         uint256 aTokensHeld = aToken.balanceOf(address(this));
         uint256 aTokensToRedeem = (aTokensHeld * percentageOfSupply) / 1e18;
 
+        _burn(from, amount);
         pool.withdraw(address(underlying), aTokensToRedeem, to);
     }
 

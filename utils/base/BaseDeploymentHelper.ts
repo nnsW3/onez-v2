@@ -340,7 +340,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
           maxRedemptionFee: "1000000000000000000", // uint256 maxRedemptionFee; // 1e18  (100%)
           borrowingFeeFloor: "5000000000000000", // uint256 borrowingFeeFloor; // 1e18 / 1000 * 5  (0.5%)
           maxBorrowingFee: "50000000000000000", // uint256 maxBorrowingFee; // 1e18 / 100 * 5  (5%)
-          interestRateInBps: "100", // uint256 interestRateInBps; // 100 (1%)
+          interestRateInBps: token.interestRateInBps, // "100", // uint256 interestRateInBps; // 100 (1%)
           maxDebt: e18.mul(1000000), // uint256 maxDebt;
           MCR: "1200000000000000000", // uint256 MCR; // 12 * 1e17  (120%)
         }

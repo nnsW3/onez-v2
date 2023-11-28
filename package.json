@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "deploy:hardhat": "hardhat --config hardhat.config.ts run scripts/deploy-hardhat-local.ts",
+    "deploy:zksync:fork": "hardhat --config hardhat.config.zksync.ts run scripts/deploy-zksync-fork.ts",
     "hardhat:local:run": "hardhat --config hardhat.config.ts run",
     "deploy-zk": "hardhat --config hardhat.config.zksync.ts deploy-zksync --script deploy.ts",
     "compile": "hardhat compile",

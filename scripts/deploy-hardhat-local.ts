@@ -5,7 +5,6 @@ import HardhatDeploymentHelper from "../utils/HardhatDeploymentHelper";
 async function main(): Promise<void> {
   const [signer] = await ethers.getSigners();
   const helper = new HardhatDeploymentHelper(signer, params, hre);
-
   await helper.deploy();
 }
 
