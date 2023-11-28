@@ -9,6 +9,7 @@ import "../interfaces/IBorrowerOperations.sol";
 import "../interfaces/ISortedTroves.sol";
 import "../interfaces/IStabilityPool.sol";
 import "../interfaces/ITroveManager.sol";
+import "../interfaces/IWrappedLendingCollateral.sol";
 
 /**
     @title Prisma Liquidation Manager
@@ -257,7 +258,10 @@ contract LiquidationManager is Initializable, PrismaBase {
         if (totals.totalDebtToOffset > 0 || totals.totalCollToSendToSP > 0) {
             // Move liquidated collateral and Debt to the appropriate pools
             stabilityPoolCached.offset(
-                troveManager.collateralToken(),
+                address(
+                    IWrappedLendingCollateral(troveManager.collateralToken())
+                        .underlying()
+                ),
                 totals.totalDebtToOffset,
                 totals.totalCollToSendToSP
             );
@@ -416,11 +420,13 @@ contract LiquidationManager is Initializable, PrismaBase {
             totals.totalDebtInSequence > 0,
             "TroveManager: nothing to liquidate"
         );
-
         if (totals.totalDebtToOffset > 0 || totals.totalCollToSendToSP > 0) {
             // Move liquidated collateral and Debt to the appropriate pools
             stabilityPoolCached.offset(
-                troveManager.collateralToken(),
+                address(
+                    IWrappedLendingCollateral(troveManager.collateralToken())
+                        .underlying()
+                ),
                 totals.totalDebtToOffset,
                 totals.totalCollToSendToSP
             );

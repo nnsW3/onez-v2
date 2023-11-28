@@ -202,14 +202,6 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     );
 
     await this.waitForTx(
-      core.onez.addFacilitator(
-        core.debtTokenOnezProxy.address,
-        "Primsa-BO",
-        BigNumber.from(10).pow(24)
-      )
-    );
-
-    await this.waitForTx(
       core.borrowerOperations.initialize(
         core.debtTokenOnezProxy.address,
         core.factory.address,
@@ -286,6 +278,14 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
         gov.incentiveVoting.address, // IIncentiveVoting _voter,
         core.stabilityPool.address, // address _stabilityPool,
         this.config.DEPLOYER_ADDRESS // address _manager
+      )
+    );
+
+    await this.waitForTx(
+      core.onez.addFacilitator(
+        core.debtTokenOnezProxy.address,
+        "Primsa-BO",
+        BigNumber.from(10).pow(24)
       )
     );
 
@@ -422,6 +422,6 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
         pyth.setPrice(this.config.COLLATERALS[index].pythId, 1800 * 1e8, -8)
       );
     }
-    return pyth as IPyth;
+    return pyth;
   }
 }

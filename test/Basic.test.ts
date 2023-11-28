@@ -13,19 +13,23 @@ import params from "../deploy/params/hardhat-test";
 import { BigNumber } from "ethers";
 import { ZERO_ADDRESS } from "../utils/base/BaseHelper";
 import { formatEther } from "ethers/lib/utils";
+import { e18, openTroves, provideToSP, withdrawFromSP } from "./helpers";
+import { BorrowerOperations, StabilityPool, TroveManager } from "../typechain";
 
 describe("Basic Functionalities", function () {
   let core: ICoreContracts;
   let gov: IGovContracts;
   let external: IExternalContracts;
+  let restWallets: SignerWithAddress[];
   let collaterals: ITokenContracts[];
   let deployer: SignerWithAddress;
   let ant: SignerWithAddress;
-
-  const e18 = BigNumber.from(10).pow(18);
+  let bo: BorrowerOperations;
+  let sp: StabilityPool;
 
   beforeEach(async () => {
-    [deployer, ant] = await ethers.getSigners();
+    [deployer, ant, ...restWallets] = await ethers.getSigners();
+
     const helper = new HardhatDeploymentHelper(deployer, params, hre);
     helper.log = () => {
       /* nothing */
@@ -36,6 +40,9 @@ describe("Basic Functionalities", function () {
     gov = result.gov;
     external = result.external;
     collaterals = result.collaterals;
+
+    bo = core.borrowerOperations;
+    sp = core.stabilityPool;
   });
 
   it("Should deploy borrowerOperations properly", async function () {
@@ -196,8 +203,66 @@ describe("Basic Functionalities", function () {
     expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(0));
   });
 
-  it("Should liquidate a bad trove", async function () {
-    // todo
+  describe.only("during liquidation", () => {
+    let goodWallets: SignerWithAddress[];
+    let tm: TroveManager;
+
+    let defaulter: SignerWithAddress;
+
+    beforeEach(async function () {
+      [defaulter, ...goodWallets] = restWallets.slice(0, 5);
+      tm = await core.troveManager.attach(await core.factory.troveManagers(0));
+
+      await openTroves(
+        bo,
+        tm,
+        [...goodWallets, defaulter],
+        [e18.mul(2), e18.mul(2), e18.mul(2), e18.mul(2), e18.div(2)], // colls
+        [1000, 1000, 1000, 1000, 700] // debts
+      );
+
+      // ensure the defaulter has a safe position CR: 126%
+      expect(
+        await tm.getCurrentICR(defaulter.address, tm.callStatic.fetchPrice())
+      ).eq("1261387526278906797");
+
+      // change the price and check the TCR
+      expect(await bo.callStatic.getTCR()).eq("3205195349324395097");
+      await external.pyth.setPrice(collaterals[0].token.pythId, 1500 * 1e8, -8);
+      expect(await bo.callStatic.getTCR()).eq("2670996124436995914");
+
+      // and ensure that the defaulter is about to get liquidated; CR: 105%
+      expect(
+        await tm.getCurrentICR(defaulter.address, tm.callStatic.fetchPrice())
+      ).eq("1051156271899088997");
+    });
+
+    it("Should liquidate a bad trove using funds from the stability pool", async function () {
+      // get everyone to deposit into the sp
+      await provideToSP(core, goodWallets[0], 900);
+      await provideToSP(core, goodWallets[1], 900);
+      await provideToSP(core, goodWallets[2], 900);
+
+      const goodGuy = goodWallets[0];
+      const coll = collaterals[0].erc20.connect(goodGuy); //  collaterals[0].token.address
+
+      // check sp variables
+      expect(await sp.getTotalDebtTokenDeposits()).eq("2700000000000000000000");
+      const gains = await sp.getDepositorCollateralGain(goodGuy.address);
+      expect(gains[0]).eq("0");
+
+      await core.liquidationManager.liquidate(tm.address, defaulter.address);
+
+      // check sp variables and rewards
+      expect(await sp.getTotalDebtTokenDeposits()).eq("1986500000000000000000");
+      const gAfter = await sp.getDepositorCollateralGain(goodGuy.address);
+      expect(gAfter[0]).eq("165833333333333100");
+
+      // get goodWallet to claim these rewards
+      expect(await coll.balanceOf(goodGuy.address)).eq(0);
+      await sp.connect(goodGuy).claimCollateralGains(goodGuy.address, [0]);
+      expect(await coll.balanceOf(goodGuy.address)).eq("165833333333333100");
+    });
   });
 
   it("Should increase collateral in a trove", async function () {
@@ -232,16 +297,12 @@ describe("Basic Functionalities", function () {
         { value: e18 }
       );
 
-    await core.onez
-      .connect(deployer)
-      .approve(core.debtTokenOnezProxy.address, e18.mul(600));
-
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(600));
-    await core.stabilityPool.provideToSP(e18.mul(600));
+    await provideToSP(core, deployer, 600);
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
 
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
-    await core.stabilityPool.withdrawFromSP(e18.mul(300));
+    await withdrawFromSP(core, deployer, e18.mul(300));
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(300));
   });
 
@@ -265,22 +326,22 @@ describe("Basic Functionalities", function () {
         { value: e18 }
       );
 
-    await core.onez
-      .connect(deployer)
-      .approve(core.debtTokenOnezProxy.address, e18.mul(600));
-
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(600));
-    await core.stabilityPool.provideToSP(e18.mul(600));
+    await provideToSP(core, deployer, 600);
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
 
     await time.increase(86400 * 15);
 
     expect(await core.onez.balanceOf(deployer.address)).to.equal(e18.mul(0));
-    await core.stabilityPool.claimReward(deployer.address);
+    await withdrawFromSP(core, deployer, e18.mul(300));
     expect(await gov.nullz.balanceOf(deployer.address)).to.equal(e18.mul(0));
   });
 
   it("Should give rewards from StabilityPool if NULLZ is issued", async function () {
     // TODO:
+  });
+
+  describe("Recovery mode tests", async () => {
+    // todo
   });
 });

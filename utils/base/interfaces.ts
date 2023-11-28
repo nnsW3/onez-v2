@@ -5,10 +5,10 @@ import {
   FeeReceiver,
   GasPool,
   ILendingPool,
-  IPyth,
   IncentiveVoting,
   LiquidationManager,
   MintableERC20,
+  MockPyth,
   MultiCollateralHintHelpers,
   MultiTroveGetter,
   ONEZ,
@@ -26,7 +26,7 @@ import {
 
 export interface IExternalContracts {
   lendingPool: ILendingPool;
-  pyth: IPyth;
+  pyth: MockPyth;
 }
 
 export interface ITokenContracts {

@@ -11,6 +11,7 @@ import "../interfaces/IDebtTokenOnezProxy.sol";
 import "../interfaces/ISortedTroves.sol";
 import "../interfaces/IStabilityPool.sol";
 import "../interfaces/ILiquidationManager.sol";
+import "../interfaces/IWrappedLendingCollateral.sol";
 
 /**
     @title Prisma Trove Factory
@@ -116,7 +117,9 @@ contract Factory is Initializable, PrismaOwnable {
         // verify that the oracle is correctly working
         ITroveManager(troveManager).fetchPrice();
 
-        stabilityPool.enableCollateral(params.collateral);
+        stabilityPool.enableCollateral(
+            address(IWrappedLendingCollateral(params.collateral).underlying())
+        );
         liquidationManager.enableTroveManager(troveManager);
         debtToken.enableTroveManager(troveManager);
         borrowerOperations.configureCollateral(troveManager, params.collateral);

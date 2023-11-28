@@ -8,7 +8,6 @@ import "../dependencies/SystemStart.sol";
 import "../dependencies/PrismaMath.sol";
 import "../interfaces/IDebtTokenOnezProxy.sol";
 import "../interfaces/IVault.sol";
-import "../interfaces/IWrappedLendingCollateral.sol";
 
 /**
     @title Prisma Stability Pool
@@ -34,9 +33,8 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
     uint32 public lastUpdate;
     uint32 public periodFinish;
 
-    mapping(IWrappedLendingCollateral collateral => uint256 index)
-        public indexByCollateral;
-    IWrappedLendingCollateral[] public collateralTokens;
+    mapping(IERC20 collateral => uint256 index) public indexByCollateral;
+    IERC20[] public collateralTokens;
 
     // Tracker for Debt held in the pool. Changes when users deposit/withdraw, and when Trove debt is offset.
     uint256 internal totalDebtTokenDeposits;
@@ -139,10 +137,7 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
         address indexed _depositor,
         uint256[] _collateral
     );
-    event CollateralOverwritten(
-        IWrappedLendingCollateral oldCollateral,
-        IWrappedLendingCollateral newCollateral
-    );
+    event CollateralOverwritten(IERC20 oldCollateral, IERC20 newCollateral);
 
     event RewardClaimed(
         address indexed account,
@@ -173,7 +168,7 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
         );
     }
 
-    function enableCollateral(IWrappedLendingCollateral _collateral) external {
+    function enableCollateral(IERC20 _collateral) external {
         require(msg.sender == factory, "Not factory");
         uint256 length = collateralTokens.length;
         bool collateralEnabled;
@@ -208,10 +203,7 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
         }
     }
 
-    function _overwriteCollateral(
-        IWrappedLendingCollateral _newCollateral,
-        uint256 idx
-    ) internal {
+    function _overwriteCollateral(IERC20 _newCollateral, uint256 idx) internal {
         require(
             indexByCollateral[_newCollateral] == 0,
             "Collateral must be sunset"
@@ -244,9 +236,7 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
         @param collateral Collateral to sunset
 
      */
-    function startCollateralSunset(
-        IWrappedLendingCollateral collateral
-    ) external onlyOwner {
+    function startCollateralSunset(IERC20 collateral) external onlyOwner {
         require(
             indexByCollateral[collateral] > 0,
             "Collateral already sunsetting"
@@ -445,7 +435,7 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
      * Cancels out the specified debt against the Debt contained in the Stability Pool (as far as possible)
      */
     function offset(
-        IWrappedLendingCollateral collateral,
+        IERC20 collateral,
         uint256 _debtToOffset,
         uint256 _collToAdd
     ) external virtual {
@@ -453,7 +443,7 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
     }
 
     function _offset(
-        IWrappedLendingCollateral collateral,
+        IERC20 collateral,
         uint256 _debtToOffset,
         uint256 _collToAdd
     ) internal {
@@ -874,7 +864,7 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
             if (gains > 0) {
                 collateralGains[collateralIndex] = gains;
                 depositorGains[collateralIndex] = 0;
-                collateralTokens[collateralIndex].burn(recipient, gains);
+                collateralTokens[collateralIndex].transfer(recipient, gains);
             }
             unchecked {
                 ++i;
