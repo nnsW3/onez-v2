@@ -49,12 +49,13 @@ export default abstract class BaseHelper {
 
   abstract deployContract<T extends Contract>(
     factoryName: string,
-    params?: any[]
+    params?: any[],
+    suffix?: string
   ): Promise<T>;
 
   async getSavedContract<T extends Contract>(factoryN: string, prefix: string) {
     const id = `${prefix}${factoryN}`;
-    return await this.getContract<T>(this.state[id].address, factoryN);
+    return await this.getContract<T>(factoryN, this.state[id].address);
   }
 
   abstract getContract<T extends Contract>(

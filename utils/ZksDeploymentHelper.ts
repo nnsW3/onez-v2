@@ -45,6 +45,7 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
     factoryN: string,
     address: string
   ) => {
+    console.log("loading", factoryN, address);
     const factory = await this.getFactory(factoryN);
     return new ethers.Contract(
       address,
@@ -57,16 +58,23 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
 
   async deployContract<T extends Contract>(
     name: string,
-    params: any[] = []
+    params: any[] = [],
+    suffix: string = ""
   ): Promise<T> {
-    if (this.state[name] && this.state[name].address && !this.skipSave) {
+    if (
+      this.state[`${name}${suffix}`] &&
+      this.state[`${name}${suffix}`].address &&
+      !this.skipSave
+    ) {
       this.log(
-        `- Using previously deployed ${name} contract at address ${this.state[name].address}`
+        `- Using previously deployed ${name}${suffix} contract at address ${
+          this.state[`${name}${suffix}`].address
+        }`
       );
-      return this.getContract<T>(this.state[name].address, name);
+      return this.getContract<T>(this.state[`${name}${suffix}`].address, name);
     }
 
-    this.log(`- Deploying ${name}`);
+    this.log(`- Deploying ${name}:${suffix}`);
     const factory = await this.getFactory(name);
     const contract = (await this.deployer.deploy(factory, params, {
       gasPrice: this.config.GAS_PRICE,
@@ -81,8 +89,8 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
       );
     }
 
-    this.log(`- Deployed ${name} at ${contract.address}`);
-    this.state[name] = {
+    this.log(`- Deployed ${name}${suffix} at ${contract.address}`);
+    this.state[`${name}${suffix}`] = {
       abi: name,
       address: contract.address,
       txHash: contract.deployTransaction.hash,
