@@ -28,7 +28,8 @@ export default abstract class BaseHelper {
     if (fs.existsSync(this.config.OUTPUT_FILE)) {
       this.log();
       this.log(`------  Loading previous deployment ------ `);
-      this.state = require("../" + this.config.OUTPUT_FILE);
+      const text = fs.readFileSync(this.config.OUTPUT_FILE);
+      this.state = JSON.parse(text.toString());
       this.log(`------  Done loading previous deployment ------ `);
       this.log();
     }

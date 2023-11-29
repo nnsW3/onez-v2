@@ -88,9 +88,8 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
       txHash: contract.deployTransaction.hash,
     };
 
-    await this.verifyContract(name, params);
-
     this.saveDeployment(this.state);
+    await this.verifyContract(name, params);
     return contract;
   }
 }
