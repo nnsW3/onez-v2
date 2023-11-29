@@ -1,7 +1,7 @@
 import { assert } from "chai";
 
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import params from "./params/zksync-goerli-fork";
+import params from "./params/zksync-mainnet-fork";
 import ZksDeploymentHelper from "../utils/ZksDeploymentHelper";
 import { getZkForkDeployer } from "./zkUtils";
 

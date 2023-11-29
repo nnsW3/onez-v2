@@ -8,7 +8,7 @@ import "hardhat-abi-exporter";
 import "@typechain/hardhat";
 
 const config: HardhatUserConfig = {
-  defaultNetwork: "zkSyncTestnet",
+  defaultNetwork: "inMemoryNode",
   typechain: {
     outDir: "typechain",
     target: "ethers-v5",

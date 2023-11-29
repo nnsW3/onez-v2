@@ -415,6 +415,12 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
   }
 
   private async loadOrDeployMockPyth() {
+    if (this.config.PYTH_ADDRESS != ZERO_ADDRESS)
+      return await this.getContract<MockPyth>(
+        "MockPyth",
+        this.config.PYTH_ADDRESS
+      );
+
     const pyth = await this.deployContract<MockPyth>(`MockPyth`);
 
     for (let index = 0; index < this.config.COLLATERALS.length; index++) {

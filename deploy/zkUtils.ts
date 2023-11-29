@@ -31,7 +31,7 @@ export const getWallet = (privateKey?: string) => {
   return new Wallet(privateKey ?? process.env.WALLET_PRIVATE_KEY!, provider);
 };
 
-export const getDeployer = (hre: HardhatRuntimeEnvironment) => {
+export const getZkDeployer = (hre: HardhatRuntimeEnvironment) => {
   // load wallet private key from env file
   const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY || "";
 
@@ -43,7 +43,7 @@ export const getDeployer = (hre: HardhatRuntimeEnvironment) => {
   return { wallet, deployer };
 };
 
-export const getForkDeployer = (hre: HardhatRuntimeEnvironment) => {
+export const getZkForkDeployer = (hre: HardhatRuntimeEnvironment) => {
   const wallet = new Wallet(
     // default zkSync wallet
     "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"

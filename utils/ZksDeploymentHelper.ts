@@ -81,6 +81,8 @@ export default class ZksDeploymentHelper extends BaseDeploymentHelper {
       );
     }
 
+    await this.verifyContract(name, params);
+
     this.log(`- Deployed ${name} at ${contract.address}`);
     this.state[name] = {
       abi: name,
