@@ -3,13 +3,14 @@
 pragma solidity 0.8.19;
 
 import "../interfaces/IPrismaCore.sol";
+import "../interfaces/IPrismaOwnable.sol";
 
 /**
     @title Prisma Ownable
     @notice Contracts inheriting `PrismaOwnable` have the same owner as `PrismaCore`.
             The ownership cannot be independently modified or renounced.
  */
-contract PrismaOwnable {
+contract PrismaOwnable is IPrismaOwnable {
     IPrismaCore public immutable PRISMA_CORE;
 
     constructor(address _prismaCore) {

@@ -14,7 +14,7 @@ import { ZERO_ADDRESS } from "../utils/base/BaseHelper";
 import { e18, openTroves, provideToSP, withdrawFromSP } from "./helpers";
 import { BorrowerOperations, StabilityPool, TroveManager } from "../typechain";
 
-describe("Core Functionalities", function () {
+describe("Core", function () {
   let core: ICoreContracts;
   let gov: IGovContracts;
   let external: IExternalContracts;

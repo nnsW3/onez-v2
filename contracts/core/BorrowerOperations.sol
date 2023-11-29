@@ -2,14 +2,15 @@
 
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "../interfaces/IWrappedLendingCollateral.sol";
-import "../interfaces/ITroveManager.sol";
-import "../interfaces/IDebtTokenOnezProxy.sol";
+import "../dependencies/DelegatedOps.sol";
 import "../dependencies/PrismaBase.sol";
 import "../dependencies/PrismaMath.sol";
 import "../dependencies/PrismaOwnable.sol";
-import "../dependencies/DelegatedOps.sol";
+import "../interfaces/IBorrowerOperations.sol";
+import "../interfaces/IDebtTokenOnezProxy.sol";
+import "../interfaces/ITroveManager.sol";
+import "../interfaces/IWrappedLendingCollateral.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
@@ -21,10 +22,11 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
             relationship between `BorrowerOperations` and each `TroveManager` / `SortedTroves` pair.
  */
 contract BorrowerOperations is
+    DelegatedOps,
+    IBorrowerOperations,
     Initializable,
     PrismaBase,
     PrismaOwnable,
-    DelegatedOps,
     ReentrancyGuard
 {
     IDebtTokenOnezProxy public debtToken;
@@ -33,63 +35,6 @@ contract BorrowerOperations is
 
     mapping(ITroveManager => TroveManagerData) public troveManagersData;
     ITroveManager[] internal _troveManagers;
-
-    struct TroveManagerData {
-        IWrappedLendingCollateral collateralToken;
-        uint16 index;
-    }
-
-    struct SystemBalances {
-        uint256[] collaterals;
-        uint256[] debts;
-        uint256[] prices;
-    }
-
-    struct LocalVariables_adjustTrove {
-        uint256 price;
-        uint256 totalPricedCollateral;
-        uint256 totalDebt;
-        uint256 collChange;
-        uint256 netDebtChange;
-        bool isCollIncrease;
-        uint256 debt;
-        uint256 coll;
-        uint256 newDebt;
-        uint256 newColl;
-        uint256 stake;
-        uint256 debtChange;
-        address account;
-        uint256 MCR;
-    }
-
-    struct LocalVariables_openTrove {
-        uint256 price;
-        uint256 totalPricedCollateral;
-        uint256 totalDebt;
-        uint256 netDebt;
-        uint256 compositeDebt;
-        uint256 ICR;
-        uint256 NICR;
-        uint256 stake;
-        uint256 arrayIndex;
-    }
-
-    enum BorrowerOperation {
-        openTrove,
-        closeTrove,
-        adjustTrove
-    }
-
-    event BorrowingFeePaid(
-        address indexed borrower,
-        IWrappedLendingCollateral collateralToken,
-        uint256 amount
-    );
-    event CollateralConfigured(
-        ITroveManager troveManager,
-        IWrappedLendingCollateral collateralToken
-    );
-    event TroveManagerRemoved(ITroveManager troveManager);
 
     constructor(
         address _prismaCore,
@@ -123,7 +68,7 @@ contract BorrowerOperations is
     function configureCollateral(
         ITroveManager troveManager,
         IWrappedLendingCollateral collateralToken
-    ) external {
+    ) external override {
         require(msg.sender == factory, "!factory");
         troveManagersData[troveManager] = TroveManagerData(
             collateralToken,
@@ -133,7 +78,7 @@ contract BorrowerOperations is
         emit CollateralConfigured(troveManager, collateralToken);
     }
 
-    function removeTroveManager(ITroveManager troveManager) external {
+    function removeTroveManager(ITroveManager troveManager) external override {
         TroveManagerData memory tmData = troveManagersData[troveManager];
         require(
             address(tmData.collateralToken) != address(0) &&
@@ -159,7 +104,7 @@ contract BorrowerOperations is
              Can still be accessed as a view from within the UX.
      */
     function getTCR() external returns (uint256 globalTotalCollateralRatio) {
-        SystemBalances memory balances = fetchBalances();
+        Balances memory balances = _fetchBalances();
         (globalTotalCollateralRatio, , ) = _getTCRData(balances);
         return globalTotalCollateralRatio;
     }
@@ -170,9 +115,9 @@ contract BorrowerOperations is
         @dev Not a view because fetching from the oracle is state changing.
              Can still be accessed as a view from within the UX.
      */
-    function fetchBalances() public returns (SystemBalances memory balances) {
+    function _fetchBalances() internal returns (Balances memory balances) {
         uint256 loopEnd = _troveManagers.length;
-        balances = SystemBalances({
+        balances = Balances({
             collaterals: new uint256[](loopEnd),
             debts: new uint256[](loopEnd),
             prices: new uint256[](loopEnd)
@@ -188,6 +133,14 @@ contract BorrowerOperations is
                 ++i;
             }
         }
+    }
+
+    function fetchBalances()
+        external
+        override
+        returns (Balances memory balances)
+    {
+        return _fetchBalances();
     }
 
     function checkRecoveryMode(uint256 TCR) public pure returns (bool) {
@@ -296,7 +249,7 @@ contract BorrowerOperations is
         uint256 _collateralAmount,
         address _upperHint,
         address _lowerHint
-    ) external callerOrDelegated(account) {
+    ) external payable callerOrDelegated(account) {
         require(!PRISMA_CORE.paused(), "Trove adjustments are paused");
         _adjustTrove(
             troveManager,
@@ -362,7 +315,7 @@ contract BorrowerOperations is
         uint256 _debtAmount,
         address _upperHint,
         address _lowerHint
-    ) external callerOrDelegated(account) {
+    ) external override callerOrDelegated(account) {
         _adjustTrove(
             troveManager,
             account,
@@ -386,7 +339,7 @@ contract BorrowerOperations is
         bool _isDebtIncrease,
         address _upperHint,
         address _lowerHint
-    ) external callerOrDelegated(account) {
+    ) external payable callerOrDelegated(account) {
         require(
             (_collDeposit == 0 && !_isDebtIncrease) || !PRISMA_CORE.paused(),
             "Trove adjustments are paused"
@@ -756,7 +709,7 @@ contract BorrowerOperations is
     }
 
     function _getTCRData(
-        SystemBalances memory balances
+        Balances memory balances
     )
         internal
         pure
@@ -802,7 +755,7 @@ contract BorrowerOperations is
         );
 
         uint256 amount;
-        SystemBalances memory balances = fetchBalances();
+        Balances memory balances = _fetchBalances();
         (amount, totalPricedCollateral, totalDebt) = _getTCRData(balances);
         isRecoveryMode = checkRecoveryMode(amount);
 
@@ -817,9 +770,10 @@ contract BorrowerOperations is
 
     function getGlobalSystemBalances()
         external
+        override
         returns (uint256 totalPricedCollateral, uint256 totalDebt)
     {
-        SystemBalances memory balances = fetchBalances();
+        Balances memory balances = _fetchBalances();
         (, totalPricedCollateral, totalDebt) = _getTCRData(balances);
     }
 }

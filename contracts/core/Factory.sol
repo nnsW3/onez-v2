@@ -122,7 +122,10 @@ contract Factory is Initializable, PrismaOwnable {
         );
         liquidationManager.enableTroveManager(troveManager);
         debtToken.enableTroveManager(troveManager);
-        borrowerOperations.configureCollateral(troveManager, params.collateral);
+        borrowerOperations.configureCollateral(
+            ITroveManager(troveManager),
+            IWrappedLendingCollateral(params.collateral)
+        );
 
         ITroveManager(troveManager).setParameters(
             params.minuteDecayFactor,
