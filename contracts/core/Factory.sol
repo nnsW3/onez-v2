@@ -13,6 +13,9 @@ import "../interfaces/IStabilityPool.sol";
 import "../interfaces/ILiquidationManager.sol";
 import "../interfaces/IWrappedLendingCollateral.sol";
 
+import "./TroveManager.sol";
+import "./SortedTroves.sol";
+
 /**
     @title Prisma Trove Factory
     @notice Deploys cloned pairs of `TroveManager` and `SortedTroves` in order to
@@ -35,6 +38,7 @@ contract Factory is Initializable, PrismaOwnable {
 
     // commented values are suggested default parameters
     struct DeploymentParams {
+        uint256 gasCompensation;
         address gasPoolAddress;
         address debtTokenAddress;
         address borrowerOperationsAddress;
@@ -83,26 +87,16 @@ contract Factory is Initializable, PrismaOwnable {
     }
 
     function deployNewInstance(
-        address customTroveManagerImpl,
-        address customSortedTrovesImpl,
         DeploymentParams memory params
     ) external onlyOwner {
-        address implementation = customTroveManagerImpl == address(0)
-            ? troveManagerImpl
-            : customTroveManagerImpl;
-        address troveManager = implementation.cloneDeterministic(
-            bytes32(bytes20(params.collateral))
+        TroveManager troveManager = new TroveManager(
+            address(PRISMA_CORE),
+            params.gasCompensation
         );
-        troveManagers.push(troveManager);
+        address sortedTroves = address(new SortedTroves());
 
-        implementation = customSortedTrovesImpl == address(0)
-            ? sortedTrovesImpl
-            : customSortedTrovesImpl;
-        address sortedTroves = implementation.cloneDeterministic(
-            bytes32(bytes20(troveManager))
-        );
-
-        ITroveManager(troveManager).setAddresses(
+        troveManagers.push(address(troveManager));
+        troveManager.setAddresses(
             params.gasPoolAddress,
             params.debtTokenAddress,
             params.borrowerOperationsAddress,
@@ -112,22 +106,22 @@ contract Factory is Initializable, PrismaOwnable {
             sortedTroves,
             params.collateral
         );
-        ISortedTroves(sortedTroves).setAddresses(troveManager);
+        ISortedTroves(sortedTroves).setAddresses(address(troveManager));
 
         // verify that the oracle is correctly working
-        ITroveManager(troveManager).fetchPrice();
+        troveManager.fetchPrice();
 
         stabilityPool.enableCollateral(
             address(IWrappedLendingCollateral(params.collateral).underlying())
         );
-        liquidationManager.enableTroveManager(troveManager);
-        debtToken.enableTroveManager(troveManager);
+        liquidationManager.enableTroveManager(address(troveManager));
+        debtToken.enableTroveManager(address(troveManager));
         borrowerOperations.configureCollateral(
-            ITroveManager(troveManager),
+            ITroveManager(address(troveManager)),
             IWrappedLendingCollateral(params.collateral)
         );
 
-        ITroveManager(troveManager).setParameters(
+        ITroveManager(address(troveManager)).setParameters(
             params.minuteDecayFactor,
             params.redemptionFeeFloor,
             params.maxRedemptionFee,
@@ -141,7 +135,7 @@ contract Factory is Initializable, PrismaOwnable {
         emit NewDeployment(
             params.collateral,
             params.priceFeed,
-            troveManager,
+            address(troveManager),
             sortedTroves
         );
     }

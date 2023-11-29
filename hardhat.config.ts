@@ -10,6 +10,7 @@ const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
+      allowUnlimitedContractSize: true,
       accounts: {
         mnemonic:
           "burger broccoli appear involve admit own next member begin direct flee host seven game hat",

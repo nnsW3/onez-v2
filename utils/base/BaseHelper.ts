@@ -35,7 +35,7 @@ export default abstract class BaseHelper {
   }
 
   saveDeployment(_state: IState) {
-    if (!this.skipSave) return;
+    if (this.skipSave) return;
     const state = JSON.stringify(_state, null, 2);
     fs.writeFileSync(this.config.OUTPUT_FILE, state);
   }
@@ -67,12 +67,12 @@ export default abstract class BaseHelper {
     name: string,
     constructorArguments: any[] = []
   ) {
-    if (
-      this.skipSave ||
-      !this.config.ETHERSCAN_BASE_URL ||
-      this.config.ETHERSCAN_BASE_URL === ""
-    )
-      return;
+    // if (
+    //   this.skipSave ||
+    //   !this.config.ETHERSCAN_BASE_URL ||
+    //   this.config.ETHERSCAN_BASE_URL === ""
+    // )
+    //   return;
 
     if (!this.state[name] || !this.state[name].address) {
       console.error(`- No deployment state for contract ${name}!!`);

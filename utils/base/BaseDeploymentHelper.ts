@@ -62,13 +62,14 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     const collaterals = await Bluebird.mapSeries(
       this.config.COLLATERALS,
       async (token) => {
-        const contracts = await this.addCollateral(core, gov, external, token);
+        const wCollateral = await this.addCollateral(
+          core,
+          gov,
+          external,
+          token
+        );
         const erc20 = await this.loadOrDeployMockERC20(token);
-        return {
-          wCollateral: contracts.wrappedLendingCollateral,
-          erc20: erc20,
-          token,
-        };
+        return { wCollateral, erc20, token };
       }
     );
 
@@ -300,23 +301,19 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
   ) {
     this.log(`------ Adding collateral ${token.symbol} ------`);
 
-    const wrappedLendingCollateral =
-      await this.deployContract<WrappedLendingCollateral>(
-        "WrappedLendingCollateral",
-        [
-          token.symbol,
-          token.symbol,
-          external.lendingPool.address,
-          token.address,
-          core.borrowerOperations.address,
-        ]
-      );
+    const wCollateral = await this.deployContract<WrappedLendingCollateral>(
+      "WrappedLendingCollateral",
+      [
+        token.symbol,
+        token.symbol,
+        external.lendingPool.address,
+        token.address,
+        core.borrowerOperations.address,
+      ]
+    );
 
     await this.waitForTx(
-      core.priceFeedPyth.setOracle(
-        wrappedLendingCollateral.address,
-        token.pythId
-      )
+      core.priceFeedPyth.setOracle(wCollateral.address, token.pythId)
     );
 
     await this.waitForTx(
@@ -324,33 +321,28 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     );
 
     await this.waitForTx(
-      core.factory.deployNewInstance(
-        ZERO_ADDRESS, // address customTroveManagerImpl,
-        ZERO_ADDRESS, // address customSortedTrovesImpl,
-        {
-          gasPoolAddress: core.gasPool.address, // address gasPoolAddress;
-          debtTokenAddress: core.debtTokenOnezProxy.address, // address debtTokenAddress;
-          borrowerOperationsAddress: core.borrowerOperations.address, // address borrowerOperationsAddress;
-          vault: gov.prismaVault.address, // address vault;
-          liquidationManager: core.liquidationManager.address, // address liquidationManager;
-          collateral: wrappedLendingCollateral.address, // address collateral;
-          priceFeed: core.priceFeedPyth.address, // address priceFeed;
-          minuteDecayFactor: "999037758833783000", // uint256 minuteDecayFactor; // 999037758833783000  (half life of 12 hours)
-          redemptionFeeFloor: "5000000000000000", // uint256 redemptionFeeFloor; // 1e18 / 1000 * 5  (0.5%)
-          maxRedemptionFee: "1000000000000000000", // uint256 maxRedemptionFee; // 1e18  (100%)
-          borrowingFeeFloor: "5000000000000000", // uint256 borrowingFeeFloor; // 1e18 / 1000 * 5  (0.5%)
-          maxBorrowingFee: "50000000000000000", // uint256 maxBorrowingFee; // 1e18 / 100 * 5  (5%)
-          interestRateInBps: token.interestRateInBps, // "100", // uint256 interestRateInBps; // 100 (1%)
-          maxDebt: e18.mul(1000000), // uint256 maxDebt;
-          MCR: "1200000000000000000", // uint256 MCR; // 12 * 1e17  (120%)
-        }
-      )
+      core.factory.deployNewInstance({
+        gasCompensation: e18.mul(this.config.GAS_COMPENSATION),
+        gasPoolAddress: core.gasPool.address, // address gasPoolAddress;
+        debtTokenAddress: core.debtTokenOnezProxy.address, // address debtTokenAddress;
+        borrowerOperationsAddress: core.borrowerOperations.address, // address borrowerOperationsAddress;
+        vault: gov.prismaVault.address, // address vault;
+        liquidationManager: core.liquidationManager.address, // address liquidationManager;
+        collateral: wCollateral.address, // address collateral;
+        priceFeed: core.priceFeedPyth.address, // address priceFeed;
+        minuteDecayFactor: "999037758833783000", // uint256 minuteDecayFactor; // 999037758833783000  (half life of 12 hours)
+        redemptionFeeFloor: "5000000000000000", // uint256 redemptionFeeFloor; // 1e18 / 1000 * 5  (0.5%)
+        maxRedemptionFee: "1000000000000000000", // uint256 maxRedemptionFee; // 1e18  (100%)
+        borrowingFeeFloor: "5000000000000000", // uint256 borrowingFeeFloor; // 1e18 / 1000 * 5  (0.5%)
+        maxBorrowingFee: "50000000000000000", // uint256 maxBorrowingFee; // 1e18 / 100 * 5  (5%)
+        interestRateInBps: token.interestRateInBps, // "100", // uint256 interestRateInBps; // 100 (1%)
+        maxDebt: e18.mul(1000000), // uint256 maxDebt;
+        MCR: "1200000000000000000", // uint256 MCR; // 12 * 1e17  (120%)
+      })
     );
 
     this.log(`------ Collateral Added ------`);
-    return {
-      wrappedLendingCollateral,
-    };
+    return wCollateral;
   }
 
   private async deployOrLoadExternalContracts(): Promise<IExternalContracts> {

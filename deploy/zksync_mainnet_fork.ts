@@ -12,7 +12,12 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   // Create deployer object and load the artifact of the contract you want to deploy.
   const d = getZkForkDeployer(hre);
 
-  const helper = new ZksDeploymentHelper(d.wallet.privateKey, params, hre);
+  const helper = new ZksDeploymentHelper(
+    d.wallet.privateKey,
+    params,
+    hre,
+    true
+  );
   helper.loadPreviousDeployment();
 
   console.log(`Deployer address: ${d.wallet.address}`);
