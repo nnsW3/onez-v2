@@ -57,7 +57,7 @@ export default abstract class BaseDeploymentHelper extends BaseHelper {
     const gov = await this.deployGov(core);
 
     // connect contracts
-    // await this.connectContracts(core, gov);
+    await this.connectContracts(core, gov);
 
     const collaterals = await Bluebird.mapSeries(
       this.config.COLLATERALS,

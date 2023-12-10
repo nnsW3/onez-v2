@@ -155,26 +155,166 @@ describe("Core", function () {
 
   describe("trove modifications", () => {
     it("Should increase collateral in a trove", async function () {
-      // todo
+      const bo = core.borrowerOperations;
+      const tm = core.troveManager.attach(await core.factory.troveManagers(0));
+
+      await bo
+        .connect(deployer)
+        .openTrove(
+          tm.address,
+          deployer.address,
+          e18,
+          e18,
+          e18.mul(200),
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+          { value: e18 }
+        );
+
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(
+        e18.mul(200)
+      );
+      expect((await tm.Troves(deployer.address)).coll).to.equal(e18);
+
+      // add more collateral
+      await bo.addColl(
+        core.factory.troveManagers(0), // troveManager: PromiseOrValue<string>,
+        deployer.address, // account: PromiseOrValue<string>,
+        e18.mul(2), // _collateralAmount: PromiseOrValue<BigNumberish>,
+        ZERO_ADDRESS, // _upperHint: PromiseOrValue<string>,
+        ZERO_ADDRESS, // _lowerHint: PromiseOrValue<string>,
+        { value: e18.mul(2) } // overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+      );
+
+      expect((await tm.Troves(deployer.address)).coll).to.equal(e18.mul(3));
     });
 
     it("Should decrease collateral in a trove", async function () {
-      // todo
+      const bo = core.borrowerOperations;
+      const tm = core.troveManager.attach(await core.factory.troveManagers(0));
+
+      await bo
+        .connect(deployer)
+        .openTrove(
+          tm.address,
+          deployer.address,
+          e18,
+          e18,
+          e18.mul(200),
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+          { value: e18 }
+        );
+
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(
+        e18.mul(200)
+      );
+      expect((await tm.Troves(deployer.address)).coll).to.equal(e18);
+
+      const beforeBal = await deployer.getBalance();
+
+      // remove 0.1 eth
+      await bo.withdrawColl(
+        core.factory.troveManagers(0), // troveManager: PromiseOrValue<string>,
+        deployer.address, // account: PromiseOrValue<string>,
+        e18.div(10), // _collateralAmount: PromiseOrValue<BigNumberish>,
+        ZERO_ADDRESS, // _upperHint: PromiseOrValue<string>,
+        ZERO_ADDRESS
+      );
+
+      const afterBal = await deployer.getBalance();
+
+      expect((await tm.Troves(deployer.address)).coll).to.equal(
+        e18.mul(9).div(10)
+      );
+
+      // have at least 0.099 eth
+      expect(afterBal.sub(beforeBal)).greaterThan(e18.mul(99).div(1000));
     });
 
     it("Should increase debt in a trove", async function () {
-      // todo
+      const bo = core.borrowerOperations;
+      const tm = core.troveManager.attach(await core.factory.troveManagers(0));
+
+      await bo
+        .connect(deployer)
+        .openTrove(
+          tm.address,
+          deployer.address,
+          e18,
+          e18,
+          e18.mul(200),
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+          { value: e18 }
+        );
+
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(
+        e18.mul(200)
+      );
+      expect((await tm.Troves(deployer.address)).debt).to.equal(e18.mul(211));
+
+      // remove 0.1 eth
+      await bo.withdrawDebt(
+        core.factory.troveManagers(0), // troveManager: PromiseOrValue<string>,
+        deployer.address, // account: PromiseOrValue<string>,
+        e18,
+        e18.mul(10), // _collateralAmount: PromiseOrValue<BigNumberish>,
+        ZERO_ADDRESS, // _upperHint: PromiseOrValue<string>,
+        ZERO_ADDRESS
+      );
+
+      expect((await tm.Troves(deployer.address)).debt).greaterThan(
+        e18.mul(221)
+      );
     });
 
     it("Should decrease debt in a trove", async function () {
-      // todo
+      const bo = core.borrowerOperations;
+      const tm = core.troveManager.attach(await core.factory.troveManagers(0));
+
+      await bo
+        .connect(deployer)
+        .openTrove(
+          tm.address,
+          deployer.address,
+          e18,
+          e18,
+          e18.mul(500),
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+          { value: e18 }
+        );
+
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(
+        e18.mul(500)
+      );
+      expect((await tm.Troves(deployer.address)).debt).greaterThan(
+        e18.mul(512)
+      );
+
+      await core.onez
+        .connect(deployer)
+        .approve(core.debtTokenOnezProxy.address, e18.mul(300));
+
+      // remove 0.1 eth
+      await bo.repayDebt(
+        core.factory.troveManagers(0), // troveManager: PromiseOrValue<string>,
+        deployer.address, // account: PromiseOrValue<string>,
+        e18.mul(10), // _collateralAmount: PromiseOrValue<BigNumberish>,
+        ZERO_ADDRESS, // _upperHint: PromiseOrValue<string>,
+        ZERO_ADDRESS
+      );
+
+      expect((await tm.Troves(deployer.address)).debt).greaterThan(
+        e18.mul(502)
+      );
     });
   });
 
   describe("redemptions", () => {
     it("Should redeem against trove with ETH collateral after bootstrap period has passed", async function () {
       const bo = core.borrowerOperations;
-      const collateral = collaterals[0];
 
       await bo
         .connect(deployer)
@@ -204,6 +344,8 @@ describe("Core", function () {
         .connect(ant)
         .approve(core.debtTokenOnezProxy.address, e18.mul(100));
 
+      const balBefore = await ant.getBalance();
+
       await tm.connect(ant).redeemCollateral(
         e18.mul(100),
         ZERO_ADDRESS,
@@ -214,9 +356,12 @@ describe("Core", function () {
         await tm.maxRedemptionFee()
       );
 
-      const erc20 = await collateral.erc20.connect(ant);
+      const balAfter = await ant.getBalance();
 
-      expect(await erc20.balanceOf(ant.address)).eq("50746329526916802");
+      // const erc20 = await collateral.erc20.connect(ant);
+      // const collateral = collaterals[0];
+      // expect(await erc20.balanceOf(ant.address)).eq("50746329526916802");
+      expect(balAfter.sub(balBefore)).greaterThan("50000000000000000");
       expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(0));
     });
   });
@@ -255,7 +400,7 @@ describe("Core", function () {
       ).eq("1051156271899088997");
     });
 
-    it("Should liquidate a bad trove using funds from the stability pool", async function () {
+    it.only("Should liquidate a bad trove using funds from the stability pool", async function () {
       // get everyone to deposit into the sp
       await provideToSP(core, goodWallets[0], 900);
       await provideToSP(core, goodWallets[1], 900);

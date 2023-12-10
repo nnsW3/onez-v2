@@ -21,5 +21,5 @@ interface IWrappedLendingCollateral is IERC20 {
 
     function pool() external view returns (ILendingPool);
 
-    function burn(address to, uint256 amount) external;
+    function burnTo(address to, uint256 amount) external;
 }

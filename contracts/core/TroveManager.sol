@@ -1031,7 +1031,7 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
         uint256 claimableColl = surplusBalances[msg.sender];
         require(claimableColl > 0, "No collateral available to claim");
         surplusBalances[msg.sender] = 0;
-        collateralToken.burn(_receiver, claimableColl);
+        collateralToken.burnTo(_receiver, claimableColl);
     }
 
     // --- Reward Claim functions ---
@@ -1645,7 +1645,7 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
         if (_amount > 0) {
             totalActiveCollateral = totalActiveCollateral - _amount;
             emit CollateralSent(_account, _amount);
-            collateralToken.burn(_account, _amount);
+            collateralToken.burnTo(_account, _amount);
         }
     }
 
