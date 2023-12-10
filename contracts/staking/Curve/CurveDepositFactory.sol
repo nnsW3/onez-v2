@@ -54,18 +54,33 @@ contract CurveFactory is PrismaOwnable {
      */
     function deployNewInstance(address gauge) external onlyOwner {
         // no duplicate deployments because deposits and rewards must route via `CurveProxy`
-        require(getDepositToken[gauge] == address(0), "Deposit token already deployed");
-        address depositToken = depositTokenImpl.cloneDeterministic(bytes32(bytes20(gauge)));
+        require(
+            getDepositToken[gauge] == address(0),
+            "Deposit token already deployed"
+        );
+        address depositToken = depositTokenImpl.cloneDeterministic(
+            bytes32(bytes20(gauge))
+        );
 
         curveProxy.setPerGaugeApproval(depositToken, gauge);
         ICurveDepositToken(depositToken).initialize(gauge);
         getDepositToken[gauge] = depositToken;
 
-        emit NewDeployment(depositToken, ICurveDepositToken(depositToken).lpToken(), gauge);
+        emit NewDeployment(
+            depositToken,
+            ICurveDepositToken(depositToken).lpToken(),
+            gauge
+        );
     }
 
-    function getDeterministicAddress(address gauge) external view returns (address) {
-        return Clones.predictDeterministicAddress(depositTokenImpl, bytes32(bytes20(gauge)));
+    function getDeterministicAddress(
+        address gauge
+    ) external view returns (address) {
+        return
+            Clones.predictDeterministicAddress(
+                depositTokenImpl,
+                bytes32(bytes20(gauge))
+            );
     }
 
     function setImplementation(address impl) external onlyOwner {

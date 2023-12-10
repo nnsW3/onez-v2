@@ -8,26 +8,45 @@ import "../../interfaces/IVault.sol";
 import "../../dependencies/PrismaOwnable.sol";
 
 interface IBooster {
-    function deposit(uint256 _pid, uint256 _amount, bool _stake) external returns (bool);
+    function deposit(
+        uint256 _pid,
+        uint256 _amount,
+        bool _stake
+    ) external returns (bool);
 
     function poolInfo(
         uint256 _pid
     )
         external
         view
-        returns (address lpToken, address token, address gauge, address crvRewards, address stash, bool shutdown);
+        returns (
+            address lpToken,
+            address token,
+            address gauge,
+            address crvRewards,
+            address stash,
+            bool shutdown
+        );
 }
 
 interface IBaseRewardPool {
-    function withdrawAndUnwrap(uint256 amount, bool claim) external returns (bool);
+    function withdrawAndUnwrap(
+        uint256 amount,
+        bool claim
+    ) external returns (bool);
 
-    function getReward(address _account, bool _claimExtras) external returns (bool);
+    function getReward(
+        address _account,
+        bool _claimExtras
+    ) external returns (bool);
 
     function getReward() external;
 }
 
 interface IConvexStash {
-    function tokenInfo(address _token) external view returns (address token, address rewards);
+    function tokenInfo(
+        address _token
+    ) external view returns (address token, address rewards);
 }
 
 /**
@@ -84,10 +103,27 @@ contract ConvexDepositToken is PrismaOwnable {
     uint256 constant REWARD_DURATION = 1 weeks;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-    event LPTokenDeposited(address indexed lpToken, address indexed receiver, uint256 amount);
-    event LPTokenWithdrawn(address indexed lpToken, address indexed receiver, uint256 amount);
-    event RewardClaimed(address indexed receiver, uint256 prismaAmount, uint256 crvAmount, uint256 cvxAmount);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+    event LPTokenDeposited(
+        address indexed lpToken,
+        address indexed receiver,
+        uint256 amount
+    );
+    event LPTokenWithdrawn(
+        address indexed lpToken,
+        address indexed receiver,
+        uint256 amount
+    );
+    event RewardClaimed(
+        address indexed receiver,
+        uint256 prismaAmount,
+        uint256 crvAmount,
+        uint256 cvxAmount
+    );
     event MaxWeeklyEmissionPctSet(uint256 pct);
     event MaxWeeklyEmissionsExceeded(uint256 allocated, uint256 maxAllowed);
 
@@ -110,7 +146,8 @@ contract ConvexDepositToken is PrismaOwnable {
 
     function initialize(uint256 pid) external {
         require(address(lpToken) == address(0), "Already initialized");
-        (address _lpToken, , , address _crvRewards, address _stash, ) = booster.poolInfo(pid);
+        (address _lpToken, , , address _crvRewards, address _stash, ) = booster
+            .poolInfo(pid);
 
         depositPid = pid;
         lpToken = IERC20(_lpToken);
@@ -132,7 +169,9 @@ contract ConvexDepositToken is PrismaOwnable {
         emit MaxWeeklyEmissionPctSet(10000);
     }
 
-    function setMaxWeeklyEmissionPct(uint16 _maxWeeklyEmissionPct) external onlyOwner returns (bool) {
+    function setMaxWeeklyEmissionPct(
+        uint16 _maxWeeklyEmissionPct
+    ) external onlyOwner returns (bool) {
         require(_maxWeeklyEmissionPct < 10001, "Invalid maxWeeklyEmissionPct");
         maxWeeklyEmissionPct = _maxWeeklyEmissionPct;
 
@@ -140,7 +179,9 @@ contract ConvexDepositToken is PrismaOwnable {
         return true;
     }
 
-    function notifyRegisteredId(uint256[] memory assignedIds) external returns (bool) {
+    function notifyRegisteredId(
+        uint256[] memory assignedIds
+    ) external returns (bool) {
         require(msg.sender == address(vault));
         require(emissionId == 0, "Already registered");
         require(assignedIds.length == 1, "Incorrect ID count");
@@ -159,7 +200,8 @@ contract ConvexDepositToken is PrismaOwnable {
         totalSupply = supply + amount;
 
         _updateIntegrals(receiver, balance, supply);
-        if (block.timestamp / 1 weeks >= periodFinish / 1 weeks) _fetchRewards();
+        if (block.timestamp / 1 weeks >= periodFinish / 1 weeks)
+            _fetchRewards();
 
         emit Transfer(address(0), receiver, amount);
         emit LPTokenDeposited(address(lpToken), receiver, amount);
@@ -167,7 +209,10 @@ contract ConvexDepositToken is PrismaOwnable {
         return true;
     }
 
-    function withdraw(address receiver, uint256 amount) external returns (bool) {
+    function withdraw(
+        address receiver,
+        uint256 amount
+    ) external returns (bool) {
         require(amount > 0, "Cannot withdraw zero");
         uint256 balance = balanceOf[msg.sender];
         uint256 supply = totalSupply;
@@ -178,7 +223,8 @@ contract ConvexDepositToken is PrismaOwnable {
         lpToken.transfer(receiver, amount);
 
         _updateIntegrals(msg.sender, balance, supply);
-        if (block.timestamp / 1 weeks >= periodFinish / 1 weeks) _fetchRewards();
+        if (block.timestamp / 1 weeks >= periodFinish / 1 weeks)
+            _fetchRewards();
 
         emit Transfer(msg.sender, address(0), amount);
         emit LPTokenWithdrawn(address(lpToken), receiver, amount);
@@ -186,7 +232,10 @@ contract ConvexDepositToken is PrismaOwnable {
         return true;
     }
 
-    function _claimReward(address claimant, address receiver) internal returns (uint128[3] memory amounts) {
+    function _claimReward(
+        address claimant,
+        address receiver
+    ) internal returns (uint128[3] memory amounts) {
         _updateIntegrals(claimant, balanceOf[claimant], totalSupply);
         amounts = storedPendingReward[claimant];
         delete storedPendingReward[claimant];
@@ -201,7 +250,10 @@ contract ConvexDepositToken is PrismaOwnable {
 
     function claimReward(
         address receiver
-    ) external returns (uint256 prismaAmount, uint256 crvAmount, uint256 cvxAmount) {
+    )
+        external
+        returns (uint256 prismaAmount, uint256 crvAmount, uint256 cvxAmount)
+    {
         uint128[3] memory amounts = _claimReward(msg.sender, receiver);
         vault.transferAllocatedTokens(msg.sender, receiver, amounts[0]);
 
@@ -209,7 +261,10 @@ contract ConvexDepositToken is PrismaOwnable {
         return (amounts[0], amounts[1], amounts[2]);
     }
 
-    function vaultClaimReward(address claimant, address receiver) external returns (uint256) {
+    function vaultClaimReward(
+        address claimant,
+        address receiver
+    ) external returns (uint256) {
         require(msg.sender == address(vault));
         uint128[3] memory amounts = _claimReward(claimant, receiver);
 
@@ -219,7 +274,11 @@ contract ConvexDepositToken is PrismaOwnable {
 
     function claimableReward(
         address account
-    ) external view returns (uint256 prismaAmount, uint256 crvAmount, uint256 cvxAmount) {
+    )
+        external
+        view
+        returns (uint256 prismaAmount, uint256 crvAmount, uint256 cvxAmount)
+    {
         uint256 updated = periodFinish;
         if (updated > block.timestamp) updated = block.timestamp;
         uint256 duration = updated - lastUpdate;
@@ -233,7 +292,9 @@ contract ConvexDepositToken is PrismaOwnable {
                 integral += (duration * rewardRate[i] * 1e18) / supply;
             }
             uint256 integralFor = rewardIntegralFor[account][i];
-            amounts[i] = storedPendingReward[account][i] + ((balance * (integral - integralFor)) / 1e18);
+            amounts[i] =
+                storedPendingReward[account][i] +
+                ((balance * (integral - integralFor)) / 1e18);
         }
         return (amounts[0], amounts[1], amounts[2]);
     }
@@ -263,7 +324,11 @@ contract ConvexDepositToken is PrismaOwnable {
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _value
+    ) public returns (bool) {
         uint256 allowed = allowance[_from][msg.sender];
         if (allowed != type(uint256).max) {
             allowance[_from][msg.sender] = allowed - _value;
@@ -272,7 +337,11 @@ contract ConvexDepositToken is PrismaOwnable {
         return true;
     }
 
-    function _updateIntegrals(address account, uint256 balance, uint256 supply) internal {
+    function _updateIntegrals(
+        address account,
+        uint256 balance,
+        uint256 supply
+    ) internal {
         uint256 updated = periodFinish;
         if (updated > block.timestamp) updated = block.timestamp;
         uint256 duration = updated - lastUpdate;
@@ -287,7 +356,9 @@ contract ConvexDepositToken is PrismaOwnable {
             if (account != address(0)) {
                 uint256 integralFor = rewardIntegralFor[account][i];
                 if (integral > integralFor) {
-                    storedPendingReward[account][i] += uint128((balance * (integral - integralFor)) / 1e18);
+                    storedPendingReward[account][i] += uint128(
+                        (balance * (integral - integralFor)) / 1e18
+                    );
                     rewardIntegralFor[account][i] = integral;
                 }
             }
@@ -299,7 +370,8 @@ contract ConvexDepositToken is PrismaOwnable {
     }
 
     function _pushExcessEmissions(uint256 newAmount) internal {
-        if (vault.lockWeeks() > 0) storedExcessEmissions = uint128(storedExcessEmissions + newAmount);
+        if (vault.lockWeeks() > 0)
+            storedExcessEmissions = uint128(storedExcessEmissions + newAmount);
         else {
             uint256 excess = storedExcessEmissions + newAmount;
             storedExcessEmissions = 0;
@@ -309,7 +381,10 @@ contract ConvexDepositToken is PrismaOwnable {
     }
 
     function fetchRewards() external {
-        require(block.timestamp / 1 weeks >= periodFinish / 1 weeks, "Can only fetch once per week");
+        require(
+            block.timestamp / 1 weeks >= periodFinish / 1 weeks,
+            "Can only fetch once per week"
+        );
         _updateIntegrals(address(0), 0, totalSupply);
         _fetchRewards();
     }
@@ -324,7 +399,9 @@ contract ConvexDepositToken is PrismaOwnable {
         // apply max weekly emission limit
         uint256 maxWeekly = maxWeeklyEmissionPct;
         if (maxWeekly < 10000) {
-            maxWeekly = (vault.weeklyEmissions(vault.getWeek()) * maxWeekly) / 10000;
+            maxWeekly =
+                (vault.weeklyEmissions(vault.getWeek()) * maxWeekly) /
+                10000;
             if (prismaAmount > maxWeekly) {
                 emit MaxWeeklyEmissionsExceeded(prismaAmount, maxWeekly);
                 _pushExcessEmissions(prismaAmount - maxWeekly);

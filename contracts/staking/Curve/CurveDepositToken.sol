@@ -54,10 +54,26 @@ contract CurveDepositToken is PrismaOwnable {
     uint256 constant REWARD_DURATION = 1 weeks;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-    event LPTokenDeposited(address indexed lpToken, address indexed receiver, uint256 amount);
-    event LPTokenWithdrawn(address indexed lpToken, address indexed receiver, uint256 amount);
-    event RewardClaimed(address indexed receiver, uint256 prismaAmount, uint256 crvAmount);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+    event LPTokenDeposited(
+        address indexed lpToken,
+        address indexed receiver,
+        uint256 amount
+    );
+    event LPTokenWithdrawn(
+        address indexed lpToken,
+        address indexed receiver,
+        uint256 amount
+    );
+    event RewardClaimed(
+        address indexed receiver,
+        uint256 prismaAmount,
+        uint256 crvAmount
+    );
     event MaxWeeklyEmissionPctSet(uint256 pct);
     event MaxWeeklyEmissionsExceeded(uint256 allocated, uint256 maxAllowed);
 
@@ -94,7 +110,9 @@ contract CurveDepositToken is PrismaOwnable {
         emit MaxWeeklyEmissionPctSet(10000);
     }
 
-    function setMaxWeeklyEmissionPct(uint16 _maxWeeklyEmissionPct) external onlyOwner returns (bool) {
+    function setMaxWeeklyEmissionPct(
+        uint16 _maxWeeklyEmissionPct
+    ) external onlyOwner returns (bool) {
         require(_maxWeeklyEmissionPct < 10001, "Invalid maxWeeklyEmissionPct");
         maxWeeklyEmissionPct = _maxWeeklyEmissionPct;
 
@@ -102,7 +120,9 @@ contract CurveDepositToken is PrismaOwnable {
         return true;
     }
 
-    function notifyRegisteredId(uint256[] memory assignedIds) external returns (bool) {
+    function notifyRegisteredId(
+        uint256[] memory assignedIds
+    ) external returns (bool) {
         require(msg.sender == address(vault));
         require(emissionId == 0, "Already registered");
         require(assignedIds.length == 1, "Incorrect ID count");
@@ -121,7 +141,8 @@ contract CurveDepositToken is PrismaOwnable {
         totalSupply = supply + amount;
 
         _updateIntegrals(receiver, balance, supply);
-        if (block.timestamp / 1 weeks >= periodFinish / 1 weeks) _fetchRewards();
+        if (block.timestamp / 1 weeks >= periodFinish / 1 weeks)
+            _fetchRewards();
 
         emit Transfer(address(0), receiver, amount);
         emit LPTokenDeposited(address(lpToken), receiver, amount);
@@ -129,16 +150,25 @@ contract CurveDepositToken is PrismaOwnable {
         return true;
     }
 
-    function withdraw(address receiver, uint256 amount) external returns (bool) {
+    function withdraw(
+        address receiver,
+        uint256 amount
+    ) external returns (bool) {
         require(amount > 0, "Cannot withdraw zero");
         uint256 balance = balanceOf[msg.sender];
         uint256 supply = totalSupply;
         balanceOf[msg.sender] = balance - amount;
         totalSupply = supply - amount;
-        curveProxy.withdrawFromGauge(address(gauge), address(lpToken), amount, receiver);
+        curveProxy.withdrawFromGauge(
+            address(gauge),
+            address(lpToken),
+            amount,
+            receiver
+        );
 
         _updateIntegrals(msg.sender, balance, supply);
-        if (block.timestamp / 1 weeks >= periodFinish / 1 weeks) _fetchRewards();
+        if (block.timestamp / 1 weeks >= periodFinish / 1 weeks)
+            _fetchRewards();
 
         emit Transfer(msg.sender, address(0), amount);
         emit LPTokenWithdrawn(address(lpToken), receiver, amount);
@@ -146,7 +176,10 @@ contract CurveDepositToken is PrismaOwnable {
         return true;
     }
 
-    function _claimReward(address claimant, address receiver) internal returns (uint128[2] memory amounts) {
+    function _claimReward(
+        address claimant,
+        address receiver
+    ) internal returns (uint128[2] memory amounts) {
         _updateIntegrals(claimant, balanceOf[claimant], totalSupply);
         amounts = storedPendingReward[claimant];
         delete storedPendingReward[claimant];
@@ -155,7 +188,9 @@ contract CurveDepositToken is PrismaOwnable {
         return amounts;
     }
 
-    function claimReward(address receiver) external returns (uint256 prismaAmount, uint256 crvAmount) {
+    function claimReward(
+        address receiver
+    ) external returns (uint256 prismaAmount, uint256 crvAmount) {
         uint128[2] memory amounts = _claimReward(msg.sender, receiver);
         vault.transferAllocatedTokens(msg.sender, receiver, amounts[0]);
 
@@ -163,7 +198,10 @@ contract CurveDepositToken is PrismaOwnable {
         return (amounts[0], amounts[1]);
     }
 
-    function vaultClaimReward(address claimant, address receiver) external returns (uint256) {
+    function vaultClaimReward(
+        address claimant,
+        address receiver
+    ) external returns (uint256) {
         require(msg.sender == address(vault));
         uint128[2] memory amounts = _claimReward(claimant, receiver);
 
@@ -171,7 +209,9 @@ contract CurveDepositToken is PrismaOwnable {
         return amounts[0];
     }
 
-    function claimableReward(address account) external view returns (uint256 prismaAmount, uint256 crvAmount) {
+    function claimableReward(
+        address account
+    ) external view returns (uint256 prismaAmount, uint256 crvAmount) {
         uint256 updated = periodFinish;
         if (updated > block.timestamp) updated = block.timestamp;
         uint256 duration = updated - lastUpdate;
@@ -185,7 +225,9 @@ contract CurveDepositToken is PrismaOwnable {
                 integral += (duration * rewardRate[i] * 1e18) / supply;
             }
             uint256 integralFor = rewardIntegralFor[account][i];
-            amounts[i] = storedPendingReward[account][i] + ((balance * (integral - integralFor)) / 1e18);
+            amounts[i] =
+                storedPendingReward[account][i] +
+                ((balance * (integral - integralFor)) / 1e18);
         }
         return (amounts[0], amounts[1]);
     }
@@ -215,7 +257,11 @@ contract CurveDepositToken is PrismaOwnable {
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _value
+    ) public returns (bool) {
         uint256 allowed = allowance[_from][msg.sender];
         if (allowed != type(uint256).max) {
             allowance[_from][msg.sender] = allowed - _value;
@@ -224,7 +270,11 @@ contract CurveDepositToken is PrismaOwnable {
         return true;
     }
 
-    function _updateIntegrals(address account, uint256 balance, uint256 supply) internal {
+    function _updateIntegrals(
+        address account,
+        uint256 balance,
+        uint256 supply
+    ) internal {
         uint256 updated = periodFinish;
         if (updated > block.timestamp) updated = block.timestamp;
         uint256 duration = updated - lastUpdate;
@@ -239,7 +289,9 @@ contract CurveDepositToken is PrismaOwnable {
             if (account != address(0)) {
                 uint256 integralFor = rewardIntegralFor[account][i];
                 if (integral > integralFor) {
-                    storedPendingReward[account][i] += uint128((balance * (integral - integralFor)) / 1e18);
+                    storedPendingReward[account][i] += uint128(
+                        (balance * (integral - integralFor)) / 1e18
+                    );
                     rewardIntegralFor[account][i] = integral;
                 }
             }
@@ -251,7 +303,8 @@ contract CurveDepositToken is PrismaOwnable {
     }
 
     function _pushExcessEmissions(uint256 newAmount) internal {
-        if (vault.lockWeeks() > 0) storedExcessEmissions = uint128(storedExcessEmissions + newAmount);
+        if (vault.lockWeeks() > 0)
+            storedExcessEmissions = uint128(storedExcessEmissions + newAmount);
         else {
             uint256 excess = storedExcessEmissions + newAmount;
             storedExcessEmissions = 0;
@@ -261,7 +314,10 @@ contract CurveDepositToken is PrismaOwnable {
     }
 
     function fetchRewards() external {
-        require(block.timestamp / 1 weeks >= periodFinish / 1 weeks, "Can only fetch once per week");
+        require(
+            block.timestamp / 1 weeks >= periodFinish / 1 weeks,
+            "Can only fetch once per week"
+        );
         _updateIntegrals(address(0), 0, totalSupply);
         _fetchRewards();
     }
@@ -274,7 +330,9 @@ contract CurveDepositToken is PrismaOwnable {
         // apply max weekly emission limit
         uint256 maxWeekly = maxWeeklyEmissionPct;
         if (maxWeekly < 10000) {
-            maxWeekly = (vault.weeklyEmissions(vault.getWeek()) * maxWeekly) / 10000;
+            maxWeekly =
+                (vault.weeklyEmissions(vault.getWeek()) * maxWeekly) /
+                10000;
             if (prismaAmount > maxWeekly) {
                 emit MaxWeeklyEmissionsExceeded(prismaAmount, maxWeekly);
                 _pushExcessEmissions(prismaAmount - maxWeekly);

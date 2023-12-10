@@ -6,7 +6,11 @@ interface IPrismaCore {
     event FeeReceiverSet(address feeReceiver);
     event GuardianSet(address guardian);
     event NewOwnerAccepted(address oldOwner, address owner);
-    event NewOwnerCommitted(address owner, address pendingOwner, uint256 deadline);
+    event NewOwnerCommitted(
+        address owner,
+        address pendingOwner,
+        uint256 deadline
+    );
     event NewOwnerRevoked(address owner, address revokedOwner);
     event Paused();
     event PriceFeedSet(address priceFeed);

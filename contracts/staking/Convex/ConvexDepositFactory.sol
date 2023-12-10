@@ -24,7 +24,11 @@ contract ConvexFactory is PrismaOwnable {
 
     mapping(uint256 pid => address depositToken) public getDepositToken;
 
-    event NewDeployment(address depositToken, address lpToken, uint256 convexPid);
+    event NewDeployment(
+        address depositToken,
+        address lpToken,
+        uint256 convexPid
+    );
     event ImplementationSet(address depositTokenImpl);
 
     constructor(
@@ -51,16 +55,25 @@ contract ConvexFactory is PrismaOwnable {
     function deployNewInstance(uint256 pid) external onlyOwner {
         // cloning reverts if duplicating the same pid with the same implementation
         // it is intentionally allowed to redeploy using the same pid with a new implementation
-        address depositToken = depositTokenImpl.cloneDeterministic(bytes32(pid));
+        address depositToken = depositTokenImpl.cloneDeterministic(
+            bytes32(pid)
+        );
 
         IConvexDepositToken(depositToken).initialize(pid);
         getDepositToken[pid] = depositToken;
 
-        emit NewDeployment(depositToken, IConvexDepositToken(depositToken).lpToken(), pid);
+        emit NewDeployment(
+            depositToken,
+            IConvexDepositToken(depositToken).lpToken(),
+            pid
+        );
     }
 
-    function getDeterministicAddress(uint256 pid) external view returns (address) {
-        return Clones.predictDeterministicAddress(depositTokenImpl, bytes32(pid));
+    function getDeterministicAddress(
+        uint256 pid
+    ) external view returns (address) {
+        return
+            Clones.predictDeterministicAddress(depositTokenImpl, bytes32(pid));
     }
 
     function setImplementation(address impl) external onlyOwner {
