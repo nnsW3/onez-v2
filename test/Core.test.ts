@@ -222,14 +222,15 @@ describe("Core", function () {
         ZERO_ADDRESS
       );
 
-      const afterBal = await deployer.getBalance();
-
       expect((await tm.Troves(deployer.address)).coll).to.equal(
         e18.mul(9).div(10)
       );
 
-      // have at least 0.099 eth
-      expect(afterBal.sub(beforeBal)).greaterThan(e18.mul(99).div(1000));
+      const collateral = collaterals[0];
+      const erc20 = await collateral.erc20.connect(ant);
+      expect(await erc20.balanceOf(deployer.address)).eq(
+        e18.mul(10001).div(10)
+      );
     });
 
     it("Should increase debt in a trove", async function () {
@@ -358,10 +359,9 @@ describe("Core", function () {
 
       const balAfter = await ant.getBalance();
 
-      // const erc20 = await collateral.erc20.connect(ant);
-      // const collateral = collaterals[0];
-      // expect(await erc20.balanceOf(ant.address)).eq("50746329526916802");
-      expect(balAfter.sub(balBefore)).greaterThan("50000000000000000");
+      const collateral = collaterals[0];
+      const erc20 = await collateral.erc20.connect(ant);
+      expect(await erc20.balanceOf(ant.address)).eq("50746329526916802");
       expect(await core.onez.balanceOf(ant.address)).to.equal(e18.mul(0));
     });
   });
@@ -400,7 +400,7 @@ describe("Core", function () {
       ).eq("1051156271899088997");
     });
 
-    it.only("Should liquidate a bad trove using funds from the stability pool", async function () {
+    it("Should liquidate a bad trove using funds from the stability pool", async function () {
       // get everyone to deposit into the sp
       await provideToSP(core, goodWallets[0], 900);
       await provideToSP(core, goodWallets[1], 900);

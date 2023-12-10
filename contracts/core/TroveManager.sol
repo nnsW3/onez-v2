@@ -13,7 +13,6 @@ import "../interfaces/ISortedTroves.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IWrappedLendingCollateral.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
 
 /**
     @title Prisma Trove Manager

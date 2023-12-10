@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "hardhat/console.sol";
-
 contract WrappedLendingCollateral is
     ReentrancyGuard,
     IWrappedLendingCollateral,
@@ -47,10 +45,6 @@ contract WrappedLendingCollateral is
         IERC20(underlying).approve(address(_pool), type(uint256).max);
     }
 
-    receive() external payable {
-        // leave blank
-    }
-
     function mint(uint256 amount) external payable override {
         _mintFrom(msg.sender, msg.sender, amount);
     }
@@ -64,7 +58,7 @@ contract WrappedLendingCollateral is
         _mintFrom(from, to, amount);
     }
 
-    function burn(address to, uint256 amount) external override {
+    function burnTo(address to, uint256 amount) external override {
         _burnWithdraw(msg.sender, to, amount);
     }
 
@@ -76,20 +70,12 @@ contract WrappedLendingCollateral is
         if (amount == 0) return;
 
         uint256 percentageOfSupply = (amount * 1e18) / totalSupply();
-
         uint256 aTokensHeld = aToken.balanceOf(address(this));
         uint256 aTokensToRedeem = (aTokensHeld * percentageOfSupply) / 1e18;
 
         _burn(from, amount);
-        pool.withdraw(address(underlying), aTokensToRedeem, address(this));
-        underlying.withdraw(aTokensToRedeem);
 
-        console.log("hit", address(this).balance);
-        console.log("hit", to);
-
-        // send ETH over
-        (bool callSuccess, ) = to.call{value: address(this).balance}("");
-        require(callSuccess, "eth transfer failed");
+        pool.withdraw(address(underlying), aTokensToRedeem, to);
     }
 
     function _mintFrom(
