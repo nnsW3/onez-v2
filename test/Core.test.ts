@@ -154,7 +154,7 @@ describe("Core", function () {
   });
 
   describe("trove modifications", () => {
-    it("Should increase collateral in a trove", async function () {
+    it("Should increase collateral in a trove as ETH", async function () {
       const bo = core.borrowerOperations;
       const tm = core.troveManager.attach(await core.factory.troveManagers(0));
 
@@ -189,6 +189,46 @@ describe("Core", function () {
       expect((await tm.Troves(deployer.address)).coll).to.equal(e18.mul(3));
     });
 
+    it("Should increase collateral in a trove as WETH", async function () {
+      const bo = core.borrowerOperations;
+      const tm = core.troveManager.attach(await core.factory.troveManagers(0));
+
+      await bo
+        .connect(deployer)
+        .openTrove(
+          tm.address,
+          deployer.address,
+          e18,
+          e18,
+          e18.mul(200),
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
+          { value: e18 }
+        );
+
+      expect(await core.onez.balanceOf(deployer.address)).to.equal(
+        e18.mul(200)
+      );
+
+      const collateral = collaterals[0];
+      const erc20 = await collateral.erc20.connect(ant);
+      await erc20
+        .connect(deployer)
+        .approve(collateral.wCollateral.address, e18.mul(3));
+      expect((await tm.Troves(deployer.address)).coll).to.equal(e18);
+
+      // add more collateral
+      await bo.addColl(
+        core.factory.troveManagers(0), // troveManager: PromiseOrValue<string>,
+        deployer.address, // account: PromiseOrValue<string>,
+        e18.mul(2), // _collateralAmount: PromiseOrValue<BigNumberish>,
+        ZERO_ADDRESS, // _upperHint: PromiseOrValue<string>,
+        ZERO_ADDRESS // _lowerHint: PromiseOrValue<string>,
+      );
+
+      expect((await tm.Troves(deployer.address)).coll).to.equal(e18.mul(3));
+    });
+
     it("Should decrease collateral in a trove", async function () {
       const bo = core.borrowerOperations;
       const tm = core.troveManager.attach(await core.factory.troveManagers(0));
@@ -211,8 +251,6 @@ describe("Core", function () {
       );
       expect((await tm.Troves(deployer.address)).coll).to.equal(e18);
 
-      const beforeBal = await deployer.getBalance();
-
       // remove 0.1 eth
       await bo.withdrawColl(
         core.factory.troveManagers(0), // troveManager: PromiseOrValue<string>,
@@ -229,7 +267,7 @@ describe("Core", function () {
       const collateral = collaterals[0];
       const erc20 = await collateral.erc20.connect(ant);
       expect(await erc20.balanceOf(deployer.address)).eq(
-        e18.mul(10001).div(10)
+        "999100000000000000000"
       );
     });
 
