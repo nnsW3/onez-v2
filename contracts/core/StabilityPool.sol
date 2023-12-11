@@ -381,7 +381,7 @@ contract StabilityPool is Initializable, PrismaOwnable, SystemStart {
         uint256 totalDebt = totalDebtTokenDeposits; // cached to save an SLOAD
         /*
          * When total deposits is 0, G is not updated. In this case, the Prisma issued can not be obtained by later
-         * depositors - it is missed out on, and remains in the balanceof the Treasury contract.
+         * depositors - it is missed out on, and remains in the balance of the Treasury contract.
          *
          */
         if (totalDebt == 0 || _prismaIssuance == 0) {
