@@ -568,7 +568,7 @@ contract LiquidationManager is Initializable, PrismaBase {
 
     /**
         @dev Liquidate a trove without using the stability pool. All debt and collateral
-             are distributed porportionally between the remaining active troves.
+             are distributed proportionally between the remaining active troves.
      */
     function _liquidateWithoutSP(
         ITroveManager troveManager,
