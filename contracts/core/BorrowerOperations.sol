@@ -435,7 +435,7 @@ contract BorrowerOperations is
             );
         }
 
-        // If we are incrasing collateral, send tokens to the trove manager prior to adjusting the trove
+        // If we are increasing collateral, send tokens to the trove manager prior to adjusting the trove
         if (vars.isCollIncrease)
             // make the user deposit into the lending pool and send the tokens to the tm
             collateralToken.mintPrivileged{value: msg.value}(
