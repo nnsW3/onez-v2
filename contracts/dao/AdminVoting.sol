@@ -11,7 +11,7 @@ import "../interfaces/ITokenLocker.sol";
     @title Prisma DAO Admin Voter
     @notice Primary ownership contract for all Prisma contracts. Allows executing
             arbitrary function calls only after a required percentage of PRISMA
-            lockers have signalled in favor of performing the action.
+            lockers have signaled in favor of performing the action.
  */
 contract AdminVoting is DelegatedOps, SystemStart {
     using Address for address;
