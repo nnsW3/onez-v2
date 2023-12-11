@@ -51,7 +51,7 @@ import "../dependencies/SystemStart.sol";
 contract BoostCalculator is SystemStart {
     ITokenLocker public immutable locker;
 
-    // initial number of weeks where all accounts recieve max boost
+    // initial number of weeks where all accounts receive max boost
     uint256 public immutable MAX_BOOST_GRACE_WEEKS;
 
     // week -> total weekly lock weight
