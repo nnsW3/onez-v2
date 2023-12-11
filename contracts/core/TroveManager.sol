@@ -142,7 +142,7 @@ contract TroveManager is PrismaBase, PrismaOwnable, SystemStart {
     // Map addresses with active troves to their RewardSnapshot
     mapping(address => RewardSnapshot) public rewardSnapshots;
 
-    // Array of all active trove addresses - used to to compute an approximate hint off-chain, for the sorted list insertion
+    // Array of all active trove addresses - used to compute an approximate hint off-chain, for the sorted list insertion
     address[] TroveOwners;
 
     struct VolumeData {
